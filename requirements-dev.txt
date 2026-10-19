@@ -1,0 +1,2 @@
+# Python tooling used by `make lint` and CI. Versions are exact; see docs/licenses.md.
+yamllint==1.38.0

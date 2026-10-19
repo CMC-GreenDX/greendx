@@ -1,0 +1,12 @@
+extends: default
+
+ignore: |
+  node_modules/
+
+rules:
+  document-start: disable
+  line-length:
+    max: 160
+  # GitHub Actions uses the bare key "on", which yamllint would otherwise flag as a truthy value.
+  truthy:
+    check-keys: false

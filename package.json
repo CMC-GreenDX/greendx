@@ -1,0 +1,26 @@
+{
+  "name": "ecotrace",
+  "private": true,
+  "description": "Repository tooling for EcoTrace: linting, commit conventions and changelog generation.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CMC-GreenDX/greendx.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "lint": "npm run lint:md && npm run lint:yaml",
+    "lint:md": "markdownlint-cli2",
+    "lint:yaml": "python -m yamllint --strict .",
+    "lint:commits": "commitlint --from origin/main --to HEAD --verbose",
+    "changelog": "git-cliff --output CHANGELOG.md"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "git-cliff": "2.14.2",
+    "markdownlint-cli2": "0.23.3"
+  }
+}
