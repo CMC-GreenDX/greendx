@@ -1,0 +1,14 @@
+{
+  "config": {
+    "default": true,
+    // Prose is written one paragraph per line; wrapping is left to the editor.
+    "MD013": false,
+    // Repeated headings are allowed in different sections (for example ADR "Consequences").
+    "MD024": { "siblings_only": true },
+    // Compact tables (|---|---|) are used throughout and stay readable in diffs.
+    "MD060": false
+  },
+  "globs": ["**/*.md"],
+  // CHANGELOG.md is generated. The project brief is kept exactly as the team wrote it.
+  "ignores": ["node_modules/**", "CHANGELOG.md", "docs/project-brief.md"]
+}
