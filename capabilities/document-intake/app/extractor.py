@@ -319,6 +319,8 @@ def _to_number(value: str) -> str | None:
         float(cleaned)
     except ValueError:
         return None
+    if "." in cleaned:  # '42350.0' and '42350' are the same value
+        cleaned = cleaned.rstrip("0").rstrip(".")
     return cleaned
 
 
