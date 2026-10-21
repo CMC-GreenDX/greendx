@@ -1,0 +1,23 @@
+[
+  {
+    "file": "electricity-bill-2026-09.pdf",
+    "title": {
+      "vi": "Hoá đơn tiền điện tháng 9 (PDF)",
+      "en": "September electricity bill (PDF)"
+    }
+  },
+  {
+    "file": "warehouse-issue-slip-0915.jpg",
+    "title": {
+      "vi": "Phiếu xuất kho dầu diesel (ảnh chụp)",
+      "en": "Diesel warehouse issue slip (photo)"
+    }
+  },
+  {
+    "file": "purchase-invoice-0007.pdf",
+    "title": {
+      "vi": "Hoá đơn GTGT mua gạch chịu lửa (PDF)",
+      "en": "VAT invoice for refractory bricks (PDF)"
+    }
+  }
+]

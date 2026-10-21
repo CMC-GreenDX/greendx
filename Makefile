@@ -10,7 +10,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -19,7 +19,7 @@ help: ## List available targets
 	cp .env.example .env
 
 up: .env ## Start the services of PROFILE (default: core), wait until healthy, apply metadata
-	$(COMPOSE) up -d --wait
+	$(COMPOSE) up -d --build --wait
 	@$(MAKE) --no-print-directory bootstrap
 
 down: ## Stop the services and keep their data
@@ -45,6 +45,16 @@ bootstrap: ## Apply Hasura metadata (tables and tenant permissions)
 
 demo: ## Run the scripted core demo (identity, gateway, tenant isolation)
 	@bash deploy/compose/demo/demo.sh
+
+intake-check: ## Check document upload, extraction and tenant isolation (CHECK_IMAGES=1 also tests photos, needs AI)
+	@bash deploy/compose/demo/intake-check.sh
+
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright/python:v1.64.0-noble
+ui-check: ## Browser smoke test of the demo console; screenshots in /tmp/ecotrace-ui
+	@mkdir -p /tmp/ecotrace-ui
+	docker run --rm --network host -e DEMO_USER_PASSWORD -e SCREENSHOT_DIR=/shots \
+		-v "$(CURDIR)/deploy/compose/demo:/tests:ro" -v /tmp/ecotrace-ui:/shots $(PLAYWRIGHT_IMAGE) \
+		bash -c "pip install -q --root-user-action=ignore playwright==1.64.0 && python /tests/ui-check.py"
 
 setup: ## Install the pinned lint and changelog tooling
 	npm ci

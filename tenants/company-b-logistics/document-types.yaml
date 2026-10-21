@@ -1,0 +1,37 @@
+# Document types that Document Intake accepts for this tenant.
+# A logistics company mainly burns diesel, so fuel slips matter here; warehouse issue slips are not accepted.
+review_threshold: 0.85
+
+document_types:
+  - id: fuel_slip
+    label: {vi: Phiếu bơm nhiên liệu, en: Fuel slip}
+    description: Receipt from a fuel station or the company's own tank for fuel pumped into a vehicle.
+    keywords: [nhiên liệu, lít, diesel, xăng, biển số]
+    fields:
+      - {name: slip_number, label: {vi: Số phiếu, en: Slip number}, type: string, pattern: 'Số phiếu[:\s]+([A-Z0-9-]+)'}
+      - {name: fuel_date, label: {vi: Ngày bơm, en: Date}, type: date, pattern: 'Ngày[:\s]+([0-9/]+)'}
+      - {name: vehicle_plate, label: {vi: Biển số xe, en: Vehicle plate}, type: string, pattern: 'Biển số xe[:\s]+([0-9A-Z.-]+)'}
+      - {name: fuel_type, label: {vi: Loại nhiên liệu, en: Fuel type}, type: string}
+      - {name: quantity_liters, label: {vi: Số lượng, en: Quantity}, type: number, unit: L, pattern: 'Số lượng[:\s]+([0-9.,]+)\s*lít'}
+      - {name: total_amount_vnd, label: {vi: Thành tiền, en: Amount}, type: number, unit: VND, pattern: 'Thành tiền[:\s]+([0-9.,]+)'}
+
+  - id: electricity_bill
+    label: {vi: Hoá đơn tiền điện, en: Electricity bill}
+    description: Monthly electricity bill for a warehouse or depot.
+    keywords: [kwh, tiền điện, điện năng, công tơ]
+    fields:
+      - {name: customer_code, label: {vi: Mã khách hàng, en: Customer code}, type: string, pattern: 'Mã khách hàng[:\s]+([A-Z0-9]+)'}
+      - {name: period_start, label: {vi: Từ ngày, en: Period start}, type: date, pattern: 'Kỳ hoá đơn[:\s]+([0-9/]+)'}
+      - {name: period_end, label: {vi: Đến ngày, en: Period end}, type: date, pattern: 'Kỳ hoá đơn[:\s]+[0-9/]+\s*-\s*([0-9/]+)'}
+      - {name: consumption_kwh, label: {vi: Điện năng tiêu thụ, en: Consumption}, type: number, unit: kWh, pattern: 'Điện năng tiêu thụ[:\s]+([0-9.,]+)\s*kWh'}
+      - {name: total_amount_vnd, label: {vi: Tổng tiền thanh toán, en: Total amount}, type: number, unit: VND, pattern: 'Tổng tiền thanh toán[:\s]+([0-9.,]+)'}
+
+  - id: purchase_invoice
+    label: {vi: Hoá đơn mua hàng, en: Purchase invoice}
+    description: VAT invoice from a supplier.
+    keywords: [hoá đơn giá trị gia tăng, hóa đơn gtgt, đơn vị bán hàng, thuế gtgt]
+    fields:
+      - {name: invoice_number, label: {vi: Số hoá đơn, en: Invoice number}, type: string, pattern: 'Số hoá đơn[:\s]+([0-9]+)'}
+      - {name: invoice_date, label: {vi: Ngày hoá đơn, en: Invoice date}, type: date, pattern: 'Ngày hoá đơn[:\s]+([0-9/]+)'}
+      - {name: supplier_name, label: {vi: Đơn vị bán, en: Supplier}, type: string}
+      - {name: total_amount_vnd, label: {vi: Tổng tiền thanh toán, en: Total amount}, type: number, unit: VND, pattern: 'Tổng tiền thanh toán[:\s]+([0-9.,]+)'}

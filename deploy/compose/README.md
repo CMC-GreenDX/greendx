@@ -20,6 +20,8 @@ make reset    # stop and delete data volumes
 | `keycloak` | `quay.io/keycloak/keycloak:26.8.1` | 8080 | SSO, issues tokens with the `tenant_id` claim |
 | `hasura` | `hasura/graphql-engine:v2.50.3` | 8081 | GraphQL API with per-tenant permissions |
 | `apisix` | `apache/apisix:3.19.0-debian` | 9080 | API gateway: JWT verification, rate limiting, routing |
+| `document-intake` | built from `capabilities/document-intake` | none (via gateway `/intake/*`) | Document classification and extraction |
+| `demo-console` | `nginx:1.30.6-alpine` | none (via gateway `/`) | Static demo console |
 
 The remaining core services from [ADR-0001](../../docs/adr/0001-core-technology-choices.md) are added in later Phase 1 issues.
 
