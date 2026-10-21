@@ -48,7 +48,8 @@ Planned for the `core` Compose profile (Phase 1) unless noted. ✅ means the lic
 | Component | Pinned version | Artifact | License | How it is used |
 |---|---|---|---|---|
 | Python (base image of Document Intake) | 3.13.16 | `python:3.13.16-slim-trixie` | PSF-2.0 ✅ (Debian packages under their own OSI licenses) | Runtime of the Document Intake service |
-| anthropic (Python SDK) | 1.17.0 | PyPI | MIT ✅ | Calls the Claude API |
+| anthropic (Python SDK) | 1.17.0 | PyPI | MIT ✅ | Calls the Claude API (`AI_PROVIDER=claude`) |
+| google-genai (Python SDK) | 2.32.0 | PyPI | Apache-2.0 ✅ | Calls the Gemini API (`AI_PROVIDER=gemini`, default) |
 | FastAPI | 0.157.0 | PyPI | MIT ✅ | HTTP API of Document Intake |
 | Uvicorn | 0.54.0 | PyPI | BSD-3-Clause ✅ | ASGI server |
 | python-multipart | 0.0.32 | PyPI | Apache-2.0 ✅ | File uploads |
@@ -65,7 +66,8 @@ Transitive Python dependencies of Document Intake are resolved at image build ti
 
 | Service | Used by | License | Notes |
 |---|---|---|---|
-| Claude API (Anthropic), model `claude-opus-5-5` by default | Document Intake | **Proprietary hosted service, not an OSI-licensed component** | Optional: without `ANTHROPIC_API_KEY` the service uses its rule-based fallback. Decision and trade-offs in [ADR-0002](adr/0002-hosted-llm-api-for-document-intake.md) |
+| Gemini API (Google), model `gemini-3.8-flash` (default provider) | Document Intake | **Proprietary hosted service, not an OSI-licensed component** | Optional. On the free tier Google may use submitted content to improve its products: send only fictional samples. See [ADR-0002](adr/0002-hosted-llm-api-for-document-intake.md) |
+| Claude API (Anthropic), model `claude-opus-5-5` | Document Intake | **Proprietary hosted service, not an OSI-licensed component** | Optional alternative provider (`AI_PROVIDER=claude`) |
 
 ### Blocked: decision pending
 

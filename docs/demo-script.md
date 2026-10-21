@@ -14,7 +14,7 @@ This script covers what is built for the organiser demo on 2026-10-22: the ident
    make intake-check  # upload, extraction and tenant isolation
    ```
 
-3. Check the AI mode: `make intake-check` prints `AI {"enabled":true,...}` when `ANTHROPIC_API_KEY` is available (a Codespaces secret). Without it, the rule-based fallback is used and photos are not recognised.
+3. Check the AI mode: `make intake-check` prints `AI {"enabled":true,...}` when `GEMINI_API_KEY` is available (a Codespaces secret). Without it, the rule-based fallback is used and photos are not recognised.
 4. Open <http://localhost:9080> in your browser and log in once as `alice` to check that everything loads. The demo password is `DEMO_USER_PASSWORD` in `.env`.
 
 If something fails: `make logs` shows the service logs, and `make reset && make up` starts again from an empty database.
@@ -38,7 +38,8 @@ Optional, in the terminal: `make demo` shows that a call without a token, or wit
 ## Questions to expect
 
 - **"You send company invoices to an external AI?"** Yes, when AI extraction is on. It is optional and per deployment. Without a key, a rule-based fallback runs entirely on-premise. Before production, each company must opt in. See [ADR-0002](adr/0002-hosted-llm-api-for-document-intake.md).
-- **"Is the AI open source?"** No. The Claude API is a hosted service and is not shipped with EcoTrace. Everything we ship is under OSI licenses ([docs/licenses.md](licenses.md)), and the extractor can be switched to a local model later.
+- **"Gemini is free, so what does Google do with the data?"** On the free tier Google may use the content to improve its products, so we only send fictional sample documents. Real deployments use a paid tier, another provider, or the on-premise fallback.
+- **"Is the AI open source?"** No. Gemini (and the optional Claude provider) are hosted services and is not shipped with EcoTrace. Everything we ship is under OSI licenses ([docs/licenses.md](licenses.md)), and the extractor can be switched to a local model later.
 - **"Is isolation enforced in the database?"** Today it is enforced by the gateway (signature), the services (tenant claim on every query) and Hasura permissions. PostgreSQL row-level security comes in Phase 2.
 - **"Where are the other core services?"** OpenBao, SeaweedFS, NATS JetStream, Flowable, Kestra, Trillian, ClamAV and observability are the remaining Phase 1 work. Their choices and licenses are in [ADR-0001](adr/0001-core-technology-choices.md).
 

@@ -17,13 +17,14 @@ Since then:
 
 ## Decision
 
-1. Document Intake calls the **Claude API** through the official Anthropic Python SDK (`anthropic`, MIT).
-   - The model is `claude-opus-5-5` by default and configurable through `CLAUDE_MODEL`. Effort is `low` by default (`CLAUDE_EFFORT`), because classification and extraction are simple tasks and the demo needs answers in seconds.
+1. Document Intake calls a hosted LLM API, chosen with `AI_PROVIDER`:
+   - **`gemini` (default):** the Gemini API through Google's `google-genai` SDK (Apache-2.0), model `gemini-3.8-flash` (`GEMINI_MODEL`). The team chose it on 2026-10-21 because its free tier needs no payment.
+   - **`claude`:** the Claude API through the official Anthropic SDK (`anthropic`, MIT), model `claude-opus-5-5` (`CLAUDE_MODEL`), effort `low` (`CLAUDE_EFFORT`). This needs prepaid API credits.
    - PDFs and images are sent as they are. There is no separate OCR step.
 2. The answer format is **built from the tenant's `document-types.yaml`** and enforced with structured outputs (JSON schema): allowed document types, field names, and a value, unit and confidence per field. A new document type or field is a configuration change, not a code change. Values are normalised (numbers, ISO dates) after the call.
 3. **Rule-based fallback** (keywords and regular expressions from the same `document-types.yaml`) is used when no API key is configured or when the API fails (invalid key, rate limit, network error, refusal). The service never stops accepting documents because the AI is unavailable. Fallback results get low confidence and are flagged for review.
-4. **Server-side refusal fallback** (`fallbacks: "default"`) is enabled, so a rare safety decline is retried on Anthropic's recommended fallback model instead of failing.
-5. The **API key only comes from the environment**: a GitHub Codespaces secret today, OpenBao later. It is never written to the repository or to `.env.example`.
+4. With Claude, the **server-side refusal fallback** (`fallbacks: "default"`) is enabled, so a rare safety decline is retried on Anthropic's recommended fallback model instead of failing.
+5. **API keys only come from the environment** (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`): a GitHub Codespaces secret today, OpenBao later. It is never written to the repository or to `.env.example`.
 6. The extractor is one module with one entry point (`extract`). A local model provider (for example Ollama) can be added behind it later without touching the rest of the service.
 
 ## Alternatives considered
@@ -32,12 +33,13 @@ Since then:
 |---|---|
 | Local LLM through Ollama (brief section 4) | Needs a GPU or far more RAM than the team has; weaker on Vietnamese phone photos. Remains possible later as an alternative provider for on-premise customers |
 | Tesseract `vie` or PaddleOCR plus rules | Reads text but not layout or meaning; every document template needs new rules. Kept in spirit as the rule-based fallback |
-| Another hosted API through an OpenAI-compatible endpoint | Possible, but the team chose Claude. The provider boundary in point 6 keeps this open |
+| Claude only | Better tested in this project, but needs prepaid credits; kept as the `claude` provider |
 
 ## Consequences
 
-- **The Claude API is a proprietary hosted service, not an OSI-licensed component.** It is not shipped with EcoTrace and is optional: without a key, the platform keeps working with the rule-based fallback. Everything that is shipped stays under OSI licenses ([docs/licenses.md](../licenses.md)). The team must be ready to explain this to the jury.
+- **Gemini's free tier lets Google use the submitted content to improve its products** (Google's pricing page, "Used to improve our products: Yes" for the free tier; "No" for the paid tier). Only the fictional sample documents may be sent on the free tier. Real company documents require the paid tier or another provider.
+- **Both APIs are proprietary hosted services, not OSI-licensed components.** It is not shipped with EcoTrace and is optional: without a key, the platform keeps working with the rule-based fallback. Everything that is shipped stays under OSI licenses ([docs/licenses.md](../licenses.md)). The team must be ready to explain this to the jury.
 - **Documents leave the company's premises** when AI extraction is on. Before production use, a tenant must be able to opt in or out (planned: an `ai` setting in `tenant.yaml`), and the provider's data-retention terms must be reviewed.
-- **Cost** is a few US cents per document at the current price of `claude-opus-5-5`. A cheaper model can be set through `CLAUDE_MODEL` if measurements show the quality holds.
+- **Cost:** free on Gemini's free tier (with rate limits); a few US cents per document with `claude-opus-5-5`.
 - **Network dependency.** If the API is unreachable, uploads still succeed through the fallback, with lower confidence.
 - The brief's mention of Ollama in section 4 is superseded by this ADR for the demo and Phase 3.
