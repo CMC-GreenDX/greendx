@@ -1,0 +1,12 @@
+# APISIX node configuration (standalone mode: routes are read from apisix.yaml, no etcd).
+apisix:
+  node_listen: 9080
+  enable_ipv6: false
+
+deployment:
+  role: data_plane
+  role_data_plane:
+    config_provider: yaml
+
+nginx_config:
+  error_log_level: warn

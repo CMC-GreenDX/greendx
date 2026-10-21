@@ -3,7 +3,7 @@
 [![lint](https://github.com/CMC-GreenDX/greendx/actions/workflows/lint.yml/badge.svg)](https://github.com/CMC-GreenDX/greendx/actions/workflows/lint.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-> **Status: Phase 0 (bootstrap).** Nothing is runnable yet. This README is a draft and is completed in Phase 9.
+> **Status: Phase 1 in progress.** The identity, gateway and data slice of the core runs with Docker Compose. This README is a draft and is completed in Phase 9.
 
 EcoTrace is a DX-OS Open-Core platform for Vietnamese enterprises. A reusable, headless core lets any company turn incoming documents (electricity bills, fuel slips, warehouse issue slips, purchase invoices) into structured, approved data, and then into Scope 1 and 2 greenhouse-gas figures that can be traced back to the original document and verified against a tamper-evident ledger.
 
@@ -65,7 +65,15 @@ The full plan is in [docs/project-brief.md](docs/project-brief.md).
 
 ## Getting started
 
-Installation instructions are added in Phase 1. The target is a laptop with 16 GB RAM running Docker Compose.
+The core needs a machine with about 16 GB RAM and Docker. The easiest way is a GitHub codespace: the repository's dev container selects a 4-core / 16 GB machine with Docker installed.
+
+```sh
+make up       # start PostgreSQL, Keycloak, Hasura and APISIX
+make health   # check every service
+make demo     # identity -> gateway -> data, with tenant isolation
+```
+
+See [docs/demo-script.md](docs/demo-script.md) for the walkthrough and [deploy/compose](deploy/compose) for details. Full installation instructions are completed in Phase 9.
 
 ## Contributing
 
