@@ -74,6 +74,7 @@ def _document_view(doc: dict, fields: list[dict], tenant: tenant_config.TenantCo
             {
                 **f,
                 "label": specs[f["name"]].label if f["name"] in specs else {"en": f["name"], "vi": f["name"]},
+                "type": specs[f["name"]].type if f["name"] in specs else "string",
                 "needs_review": f["confidence"] < tenant.review_threshold,
             }
             for f in fields

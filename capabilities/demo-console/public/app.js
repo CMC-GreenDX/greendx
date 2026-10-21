@@ -127,7 +127,7 @@ async function api(path, options = {}) {
 
 const pct = (v) => `${Math.round((v ?? 0) * 100)}%`;
 const numberFormat = () => new Intl.NumberFormat(lang === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 3 });
-const formatValue = (v) => (v !== null && v !== '' && !Number.isNaN(Number(v)) && /^-?\d+(\.\d+)?$/.test(v) ? numberFormat().format(Number(v)) : v);
+const formatValue = (f) => (f.type === 'number' && /^-?\d+(\.\d+)?$/.test(f.value) ? numberFormat().format(Number(f.value)) : f.value);
 
 function renderSession() {
   const c = claimsOf(tokens.access_token);
@@ -184,7 +184,7 @@ function renderResult() {
   $('result-status').className = `badge badge-${doc.status}`;
   $('fields-body').replaceChildren(...fields.map((f) => h('tr', { class: f.needs_review ? 'review' : '' },
     h('td', {}, label(f.label)),
-    h('td', {}, f.value === null ? h('span', { class: 'muted' }, t('fields.missing')) : [h('strong', {}, formatValue(f.value)), f.unit ? ` ${f.unit}` : '']),
+    h('td', {}, f.value === null ? h('span', { class: 'muted' }, t('fields.missing')) : [h('strong', {}, formatValue(f)), f.unit ? ` ${f.unit}` : '']),
     h('td', {},
       h('div', { class: 'meter' }, h('span', { style: `width:${pct(f.confidence)}` })),
       h('small', {}, pct(f.confidence)),

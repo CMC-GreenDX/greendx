@@ -19,7 +19,7 @@ help: ## List available targets
 	cp .env.example .env
 
 up: .env ## Start the services of PROFILE (default: core), wait until healthy, apply metadata
-	$(COMPOSE) up -d --wait
+	$(COMPOSE) up -d --build --wait
 	@$(MAKE) --no-print-directory bootstrap
 
 down: ## Stop the services and keep their data
