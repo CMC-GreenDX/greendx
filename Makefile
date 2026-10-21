@@ -10,7 +10,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -45,6 +45,9 @@ bootstrap: ## Apply Hasura metadata (tables and tenant permissions)
 
 demo: ## Run the scripted core demo (identity, gateway, tenant isolation)
 	@bash deploy/compose/demo/demo.sh
+
+intake-check: ## Check document upload, extraction and tenant isolation (CHECK_IMAGES=1 also tests photos, needs AI)
+	@bash deploy/compose/demo/intake-check.sh
 
 setup: ## Install the pinned lint and changelog tooling
 	npm ci
