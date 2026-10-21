@@ -1,0 +1,191 @@
+"""HTTP API of the Document Intake capability. Reached only through the API gateway."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import os
+import time
+import uuid
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
+
+from . import db, extractor, tenant_config
+from .auth import User, current_user
+
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        entry = {"level": record.levelname.lower(), "logger": record.name, "message": record.getMessage()}
+        entry.update(getattr(record, "context", {}))
+        return json.dumps(entry, ensure_ascii=False)
+
+
+_handler = logging.StreamHandler()
+_handler.setFormatter(JsonFormatter())
+logging.basicConfig(level=logging.INFO, handlers=[_handler])
+log = logging.getLogger("intake")
+
+STORAGE_DIR = Path(os.environ.get("STORAGE_DIR", "/data/documents"))
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+ACCEPTED_TYPES = {"application/pdf", "image/png", "image/jpeg", "image/webp"}
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await db.connect()
+    yield
+    await db.close()
+
+
+app = FastAPI(title="EcoTrace Document Intake", version="0.1.0", lifespan=lifespan)
+
+
+def _tenant(user: User) -> tenant_config.TenantConfig:
+    try:
+        return tenant_config.load(user.tenant_id)
+    except tenant_config.TenantNotConfigured as exc:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, f"Tenant {user.tenant_id} has no config pack") from exc
+
+
+def _document_view(doc: dict, fields: list[dict], tenant: tenant_config.TenantConfig) -> dict:
+    doc_type = tenant.document_type(doc["document_type"])
+    specs = {f.name: f for f in doc_type.fields} if doc_type else {}
+    return {
+        "document": {
+            "id": str(doc["id"]),
+            "filename": doc["filename"],
+            "content_type": doc["content_type"],
+            "size_bytes": doc["size_bytes"],
+            "status": doc["status"],
+            "document_type": doc["document_type"],
+            "document_type_label": doc_type.label if doc_type else None,
+            "type_confidence": doc["type_confidence"],
+            "extractor": doc["extractor"],
+            "notes": doc.get("notes"),
+            "uploaded_by": doc["uploaded_by"],
+            "created_at": doc["created_at"].isoformat() if doc.get("created_at") else None,
+        },
+        "fields": [
+            {
+                **f,
+                "label": specs[f["name"]].label if f["name"] in specs else {"en": f["name"], "vi": f["name"]},
+                "type": specs[f["name"]].type if f["name"] in specs else "string",
+                "needs_review": f["confidence"] < tenant.review_threshold,
+            }
+            for f in fields
+        ],
+        "review_threshold": tenant.review_threshold,
+    }
+
+
+@app.get("/intake/health", include_in_schema=False)
+async def health() -> dict:
+    return {"status": "ok"}
+
+
+@app.get("/intake/me")
+async def me(user: User = Depends(current_user)) -> dict:
+    tenant = _tenant(user)
+    return {
+        "username": user.username,
+        "tenant_id": tenant.tenant_id,
+        "tenant_name": tenant.name,
+        "ai": {"enabled": extractor.ai_enabled(), "model": extractor.MODEL if extractor.ai_enabled() else None},
+        "review_threshold": tenant.review_threshold,
+        "document_types": [{"id": t.id, "label": t.label, "fields": [f.name for f in t.fields]} for t in tenant.document_types],
+    }
+
+
+@app.post("/intake/documents", status_code=status.HTTP_201_CREATED)
+async def upload(file: UploadFile, user: User = Depends(current_user)) -> dict:
+    tenant = _tenant(user)
+    trace_id = uuid.uuid4().hex
+    pipeline: list[dict] = [{"step": "gateway", "status": "ok", "detail": f"{user.username} @ {user.tenant_id}"}]
+
+    content_type = (file.content_type or "").split(";")[0]
+    if content_type not in ACCEPTED_TYPES:
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, f"Unsupported file type {content_type}")
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "File larger than 10 MB")
+
+    started = time.perf_counter()
+    document_id = uuid.uuid4()
+    tenant_dir = STORAGE_DIR / tenant.tenant_id
+    tenant_dir.mkdir(parents=True, exist_ok=True)
+    storage_path = tenant_dir / f"{document_id}{Path(file.filename or '').suffix.lower()[:8]}"
+    storage_path.write_bytes(content)
+    sha256 = hashlib.sha256(content).hexdigest()
+    pipeline.append({"step": "store", "status": "ok", "detail": f"{tenant.tenant_id}/{storage_path.name}",
+                     "ms": round((time.perf_counter() - started) * 1000)})
+
+    started = time.perf_counter()
+    result = await extractor.extract(tenant, content, content_type)
+    ai_ms = round((time.perf_counter() - started) * 1000)
+    pipeline.append({"step": "classify", "status": "ok" if result.document_type != extractor.UNKNOWN else "warning",
+                     "detail": f"{result.document_type} ({result.type_confidence:.0%})", "ms": ai_ms})
+    low = [f.name for f in result.fields if f.confidence < tenant.review_threshold]
+    pipeline.append({"step": "extract", "status": "warning" if low or not result.fields else "ok",
+                     "detail": f"{len(result.fields)} fields, {len(low)} below {tenant.review_threshold:.0%}",
+                     "extractor": result.extractor})
+
+    if result.document_type == extractor.UNKNOWN:
+        doc_status = "unrecognised"
+    elif low:
+        doc_status = "needs_review"
+    else:
+        doc_status = "extracted"
+    notes = "; ".join(filter(None, [result.notes, *result.warnings])) or None
+
+    doc = {
+        "id": document_id, "tenant_id": tenant.tenant_id, "filename": (file.filename or "upload")[:200],
+        "content_type": content_type, "size_bytes": len(content), "sha256": sha256,
+        "storage_path": str(storage_path), "status": doc_status, "document_type": result.document_type,
+        "type_confidence": result.type_confidence, "extractor": result.extractor, "notes": notes,
+        "uploaded_by": user.username,
+    }
+    fields = [{"name": f.name, "value": f.value, "unit": f.unit, "confidence": f.confidence} for f in result.fields]
+    await db.insert_document(doc, fields)
+    pipeline.append({"step": "persist", "status": "ok", "detail": f"status {doc_status}"})
+
+    log.info("document processed", extra={"context": {
+        "trace_id": trace_id, "tenant_id": tenant.tenant_id, "document_id": str(document_id), "user": user.username,
+        "document_type": result.document_type, "status": doc_status, "extractor": result.extractor, "ai_ms": ai_ms,
+    }})
+    view = _document_view({**doc, "created_at": None}, fields, tenant)
+    view["pipeline"] = pipeline
+    view["trace_id"] = trace_id
+    return view
+
+
+@app.get("/intake/documents")
+async def list_documents(user: User = Depends(current_user)) -> dict:
+    tenant = _tenant(user)
+    docs = await db.list_documents(tenant.tenant_id)
+    return {"documents": [
+        {**_document_view(d, [], tenant)["document"]} for d in docs
+    ]}
+
+
+@app.get("/intake/documents/{document_id}")
+async def get_document(document_id: uuid.UUID, user: User = Depends(current_user)) -> dict:
+    tenant = _tenant(user)
+    found = await db.get_document(tenant.tenant_id, document_id)
+    if found is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
+    return _document_view(*found, tenant)
+
+
+@app.get("/intake/documents/{document_id}/file")
+async def get_file(document_id: uuid.UUID, user: User = Depends(current_user)) -> FileResponse:
+    found = await db.get_document(user.tenant_id, document_id)
+    if found is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
+    doc = found[0]
+    return FileResponse(doc["storage_path"], media_type=doc["content_type"], filename=doc["filename"],
+                        content_disposition_type="inline")

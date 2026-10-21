@@ -1,6 +1,6 @@
 # yamllint disable rule:comments
 # Gateway routes. Every business call must carry a valid Keycloak access token (zero trust at the edge);
-# Hasura verifies the same token again and applies tenant permissions.
+# the service behind the route verifies the same token again.
 # Tenant-neutral: the gateway checks signature, issuer and expiry, never a specific tenant.
 
 upstreams:
@@ -8,6 +8,18 @@ upstreams:
     type: roundrobin
     nodes:
       "hasura:8080": 1
+  - id: document-intake
+    type: roundrobin
+    timeout:
+      connect: 5
+      send: 60
+      read: 120
+    nodes:
+      "document-intake:8000": 1
+  - id: demo-console
+    type: roundrobin
+    nodes:
+      "demo-console:80": 1
 
 routes:
   - id: graphql
@@ -31,10 +43,41 @@ routes:
         rejected_code: 429
         policy: local
 
+  - id: intake-health
+    uri: /intake/health
+    upstream_id: document-intake
+
+  - id: intake
+    uri: /intake/*
+    upstream_id: document-intake
+    plugins:
+      openid-connect:
+        # Bearer-only: tokens are verified locally against the realm's JWKS.
+        # The client secret is never used in this mode; the field is required by the plugin schema.
+        client_id: ecotrace-gateway
+        client_secret: unused-in-bearer-only-mode
+        discovery: http://keycloak:8080/realms/ecotrace/.well-known/openid-configuration
+        bearer_only: true
+        use_jwks: true
+        realm: ecotrace
+      limit-count:
+        count: 30
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        rejected_code: 429
+        policy: local
+
   - id: gateway-health
     uri: /gateway/health
     upstream_id: hasura
     plugins:
       proxy-rewrite:
         uri: /healthz
+
+  # Static demo console (no token needed to load the page; every API call it makes needs one).
+  - id: demo-console
+    uri: /*
+    priority: -1
+    upstream_id: demo-console
 #END
