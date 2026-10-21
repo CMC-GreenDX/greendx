@@ -91,6 +91,42 @@ services:
       keycloak:
         condition: service_healthy
 
+  document-intake:
+    <<: *core
+    build: ../../capabilities/document-intake
+    image: ecotrace/document-intake:dev
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
+      JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
+      JWT_ISSUER: http://localhost:8080/realms/ecotrace
+      TENANTS_DIR: /config/tenants
+      STORAGE_DIR: /data/documents
+      # Taken from the shell (for example a Codespaces secret); never written to a file in the repository.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-opus-5-5}
+      CLAUDE_EFFORT: ${CLAUDE_EFFORT:-low}
+    volumes:
+      - ../../tenants:/config/tenants:ro
+      - intake-documents:/data/documents
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  demo-console:
+    <<: *core
+    image: nginx:1.30.6-alpine
+    volumes:
+      - ../../capabilities/demo-console/public:/usr/share/nginx/html:ro
+      - ../../tenants/company-a-steel/seed/documents:/usr/share/nginx/html/samples/company-a-steel:ro
+      - ../../tenants/company-b-logistics/seed/documents:/usr/share/nginx/html/samples/company-b-logistics:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
   apisix:
     <<: *core
     image: apache/apisix:3.19.0-debian
@@ -105,9 +141,14 @@ services:
     depends_on:
       hasura:
         condition: service_started
+      document-intake:
+        condition: service_started
+      demo-console:
+        condition: service_started
 
 networks:
   core:
 
 volumes:
   postgres-data:
+  intake-documents:

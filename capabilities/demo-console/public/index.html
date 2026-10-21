@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EcoTrace – Demo console</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">◆</span>
+      <div>
+        <strong>EcoTrace</strong>
+        <small data-i18n="brand.tagline"></small>
+      </div>
+    </div>
+    <div class="session" id="session" hidden>
+      <span class="chip chip-tenant" id="tenant-chip"></span>
+      <span class="chip" id="user-chip"></span>
+      <span class="chip chip-ai" id="ai-chip"></span>
+      <button class="link" id="logout" data-i18n="action.logout"></button>
+    </div>
+    <div class="lang">
+      <button data-lang="vi">VI</button>
+      <button data-lang="en">EN</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="login-view" class="login" hidden>
+      <h1 data-i18n="login.title"></h1>
+      <p data-i18n="login.body"></p>
+      <button class="primary" id="login" data-i18n="action.login"></button>
+      <p class="hint" data-i18n="login.hint"></p>
+    </section>
+
+    <section id="app-view" hidden>
+      <div class="config-strip" id="config-strip"></div>
+
+      <div class="grid">
+        <article class="card">
+          <h2 data-i18n="upload.title"></h2>
+          <label class="dropzone" id="dropzone">
+            <input type="file" id="file-input" accept="application/pdf,image/png,image/jpeg,image/webp" hidden>
+            <span data-i18n="upload.drop"></span>
+          </label>
+          <h3 data-i18n="samples.title"></h3>
+          <ul class="samples" id="samples"></ul>
+        </article>
+
+        <article class="card">
+          <h2 data-i18n="pipeline.title"></h2>
+          <ol class="pipeline" id="pipeline"></ol>
+        </article>
+      </div>
+
+      <article class="card" id="result-card" hidden>
+        <div class="result-head">
+          <div>
+            <h2 id="result-title"></h2>
+            <p class="muted" id="result-sub"></p>
+          </div>
+          <div class="result-actions">
+            <span class="badge" id="result-status"></span>
+            <button class="secondary" id="view-original" data-i18n="action.viewOriginal"></button>
+          </div>
+        </div>
+        <table class="fields">
+          <thead>
+            <tr>
+              <th data-i18n="fields.field"></th>
+              <th data-i18n="fields.value"></th>
+              <th data-i18n="fields.confidence"></th>
+            </tr>
+          </thead>
+          <tbody id="fields-body"></tbody>
+        </table>
+        <p class="notes" id="result-notes" hidden></p>
+      </article>
+
+      <div class="grid">
+        <article class="card">
+          <h2 data-i18n="documents.title"></h2>
+          <table class="list">
+            <thead>
+              <tr>
+                <th data-i18n="documents.time"></th>
+                <th data-i18n="documents.file"></th>
+                <th data-i18n="documents.type"></th>
+                <th data-i18n="documents.status"></th>
+              </tr>
+            </thead>
+            <tbody id="documents-body"></tbody>
+          </table>
+        </article>
+
+        <article class="card">
+          <h2 data-i18n="facilities.title"></h2>
+          <p class="muted" data-i18n="facilities.body"></p>
+          <ul class="facilities" id="facilities"></ul>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="viewer">
+    <div class="viewer-head">
+      <strong id="viewer-title"></strong>
+      <button class="link" id="viewer-close" data-i18n="action.close"></button>
+    </div>
+    <div class="viewer-body" id="viewer-body"></div>
+  </dialog>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="app.js" type="module"></script>
+</body>
+</html>
