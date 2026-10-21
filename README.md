@@ -1,0 +1,76 @@
+# EcoTrace
+
+[![lint](https://github.com/CMC-GreenDX/greendx/actions/workflows/lint.yml/badge.svg)](https://github.com/CMC-GreenDX/greendx/actions/workflows/lint.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
+> **Status: Phase 0 (bootstrap).** Nothing is runnable yet. This README is a draft and is completed in Phase 9.
+
+EcoTrace is a DX-OS Open-Core platform for Vietnamese enterprises. A reusable, headless core lets any company turn incoming documents (electricity bills, fuel slips, warehouse issue slips, purchase invoices) into structured, approved data, and then into Scope 1 and 2 greenhouse-gas figures that can be traced back to the original document and verified against a tamper-evident ledger.
+
+It is built for the OLP Phần mềm nguồn mở 2026 competition, topic "DX-OS Open-Core".
+
+## Why
+
+- **GHG inventory and CBAM.** Decision 42/2026/QĐ-TTg requires 2,441 facilities to run GHG inventories, and EU CBAM requires verified emissions data from exporters. That data must be traceable to evidence.
+- **Manual document intake.** Bills and slips arrive by email, chat or paper, are retyped into spreadsheets, and the figures can no longer be traced to their source.
+- **Existing tools** are expensive, closed and do not run on-premise for SMEs.
+
+## Architecture
+
+```text
+Tier 3  Business apps        apps/carbon-ledger, apps/purchase-approval
+           ▲ subscribe to domain events
+Tier 2  Capability spaces    document-intake [I], portal [H], workflow-ui [P], dashboard [D]
+           ▲ only via API gateway / event bus
+Tier 1  Headless core        identity, gateway, secrets, data, storage, workflow, events, ledger
+```
+
+- **Tier 1, headless core:** no end-user UI and no business logic. It is portable from one company to another without code changes.
+- **Tier 2, capabilities:** reusable services such as Document Intake, which knows nothing about carbon.
+- **Tier 3, apps:** plug-ins that can be enabled per tenant, such as the Carbon Ledger.
+
+A tenant (one company) is onboarded by configuration only, from a config pack in `tenants/`.
+
+The component choices and their reasons are recorded in [ADR-0001](docs/adr/0001-core-technology-choices.md). Licenses and pinned versions are listed in [docs/licenses.md](docs/licenses.md).
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `core/` | Tier 1: manifests and configuration for core services, JSON Schemas, gateway routes |
+| `capabilities/` | Tier 2: document intake, portal, workflow UI, dashboard |
+| `apps/` | Tier 3: carbon ledger, purchase approval |
+| `tenants/` | Tenant config packs |
+| `tools/dxctl/` | Tenant onboarding CLI |
+| `simulators/meter-sim/` | Simulated IoT meters |
+| `deploy/` | Docker Compose (profiles `core`, `app`, `full`) and Kubernetes manifests |
+| `docs/` | Project brief, architecture, ADRs, licenses, API schemas |
+
+## Roadmap
+
+| Phase | Goal |
+|---|---|
+| 0 | Bootstrap: repository, conventions, CI lint, license register, ADR-0001 |
+| 1 | Core services running with Docker Compose |
+| 2 | Multi-tenancy: config packs, `dxctl`, row-level security |
+| 3 | Document Intake |
+| 4 | Workflow and task inbox |
+| 5 | Carbon Ledger |
+| 6 | Portal and dashboards |
+| 7 | Data lifecycle (cold storage, analytics) |
+| 8 | GitOps and resilience |
+| 9 | Polish and release `v1.0.0` |
+
+The full plan is in [docs/project-brief.md](docs/project-brief.md).
+
+## Getting started
+
+Installation instructions are added in Phase 1. The target is a laptop with 16 GB RAM running Docker Compose.
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. All participants follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+EcoTrace is licensed under the [Apache License 2.0](LICENSE). Third-party components keep their own licenses, listed in [docs/licenses.md](docs/licenses.md).
