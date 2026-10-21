@@ -38,7 +38,7 @@ health: ## Check that every core service is healthy
 	@bash deploy/compose/health.sh
 
 bootstrap: ## Apply Hasura metadata (tables and tenant permissions)
-	@curl -fsS -X POST "$(HASURA_URL)/v1/metadata" \
+	@curl -fsS --retry 20 --retry-delay 3 --retry-all-errors -X POST "$(HASURA_URL)/v1/metadata" \
 		-H "Content-Type: application/json" \
 		-H "X-Hasura-Admin-Secret: $(HASURA_ADMIN_SECRET)" \
 		-d @deploy/compose/demo/hasura/metadata.json && echo " Hasura metadata applied."
