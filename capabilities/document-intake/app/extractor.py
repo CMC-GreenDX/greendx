@@ -27,6 +27,8 @@ log = logging.getLogger("intake.extractor")
 
 PROVIDER = os.environ.get("AI_PROVIDER", "gemini").lower()
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+# Tried in order when a model is overloaded (503) or rate limited (429), common on the free tier.
+GEMINI_FALLBACK_MODELS = [m.strip() for m in os.environ.get("GEMINI_FALLBACK_MODELS", "gemini-3.6-flash,gemini-3.5-flash-lite").split(",") if m.strip()]
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
 # Classification and extraction are simple tasks; low effort keeps an upload to a few seconds.
 CLAUDE_EFFORT = os.environ.get("CLAUDE_EFFORT", "low")
@@ -90,9 +92,24 @@ def _get_gemini() -> genai.Client:
 
 
 async def _extract_with_gemini(tenant: TenantConfig, content: bytes, content_type: str) -> Extraction:
+    last_error: ExtractionFailed | None = None
+    for model in [GEMINI_MODEL, *GEMINI_FALLBACK_MODELS]:
+        try:
+            return await _call_gemini(model, tenant, content, content_type)
+        except _GeminiBusy as exc:
+            log.warning("gemini model %s unavailable (%s), trying the next one", model, exc)
+            last_error = ExtractionFailed(f"all Gemini models busy, last error {exc}")
+    raise last_error or ExtractionFailed("no Gemini model configured")
+
+
+class _GeminiBusy(Exception):
+    pass
+
+
+async def _call_gemini(model: str, tenant: TenantConfig, content: bytes, content_type: str) -> Extraction:
     try:
         response = await _get_gemini().aio.models.generate_content(
-            model=GEMINI_MODEL,
+            model=model,
             contents=[
                 genai_types.Part.from_bytes(data=content, mime_type=content_type),
                 "Classify this document and extract its fields.",
@@ -104,6 +121,8 @@ async def _extract_with_gemini(tenant: TenantConfig, content: bytes, content_typ
             ),
         )
     except genai_errors.APIError as exc:
+        if exc.code in (429, 500, 503):
+            raise _GeminiBusy(exc.code) from exc
         raise ExtractionFailed(f"API error {exc.code}") from exc
     except OSError as exc:
         raise ExtractionFailed("cannot reach the API") from exc
@@ -118,7 +137,7 @@ async def _extract_with_gemini(tenant: TenantConfig, content: bytes, content_typ
         document_type=data["document_type"],
         type_confidence=float(data["type_confidence"]),
         fields=[ExtractedField(f["name"], f["value"], f["unit"], float(f["confidence"])) for f in data["fields"]],
-        extractor=GEMINI_MODEL,
+        extractor=model,
         notes=data.get("notes", ""),
     )
 
