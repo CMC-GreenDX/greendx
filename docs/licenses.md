@@ -78,6 +78,13 @@ These are used only to develop and check the repository. They are not shipped wi
 
 GitHub Actions are pinned to the full commit SHA of the release tag, so a moved tag cannot change what runs in CI.
 
+| Dev environment | Pinned version | Source | License | How it is used |
+|---|---|---|---|---|
+| Dev container base image | 3.0.9-ubuntu24.04 | `mcr.microsoft.com/devcontainers/base` | MIT ✅ (repository `devcontainers/images`) | Codespaces and VS Code Dev Containers environment |
+| Docker-in-Docker feature | 4.1.3 | `ghcr.io/devcontainers/features/docker-in-docker` | MIT ✅ (repository `devcontainers/features`) | Runs Docker Compose inside the codespace |
+| SSH server feature | 1.1.0 | `ghcr.io/devcontainers/features/sshd` | MIT ✅ (repository `devcontainers/features`) | Allows `gh codespace ssh` for scripted runs |
+| jq, make | Ubuntu 24.04 package versions | apt | MIT ✅, GPL-3.0-or-later ✅ | Demo and health scripts; not pinned beyond the base image release |
+
 Transitive npm dependencies are pinned in `package-lock.json`. As of 2026-10-19, their licenses are MIT, ISC, Apache-2.0, BSD-2-Clause, BSD-3-Clause, Python-2.0 and PSF-2.0 (`argparse`), all OSI-approved.
 
 ## Rejected components

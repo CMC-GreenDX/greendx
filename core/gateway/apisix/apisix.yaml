@@ -1,0 +1,40 @@
+# yamllint disable rule:comments
+# Gateway routes. Every business call must carry a valid Keycloak access token (zero trust at the edge);
+# Hasura verifies the same token again and applies tenant permissions.
+# Tenant-neutral: the gateway checks signature, issuer and expiry, never a specific tenant.
+
+upstreams:
+  - id: hasura
+    type: roundrobin
+    nodes:
+      "hasura:8080": 1
+
+routes:
+  - id: graphql
+    uri: /v1/graphql
+    upstream_id: hasura
+    plugins:
+      openid-connect:
+        # Bearer-only: tokens are verified locally against the realm's JWKS.
+        # The client secret is never used in this mode; the field is required by the plugin schema.
+        client_id: ecotrace-gateway
+        client_secret: unused-in-bearer-only-mode
+        discovery: http://keycloak:8080/realms/ecotrace/.well-known/openid-configuration
+        bearer_only: true
+        use_jwks: true
+        realm: ecotrace
+      limit-count:
+        count: 120
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        rejected_code: 429
+        policy: local
+
+  - id: gateway-health
+    uri: /gateway/health
+    upstream_id: hasura
+    plugins:
+      proxy-rewrite:
+        uri: /healthz
+#END

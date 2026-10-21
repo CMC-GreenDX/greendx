@@ -1,0 +1,37 @@
+{
+  "type": "replace_metadata",
+  "version": 2,
+  "args": {
+    "allow_inconsistent_metadata": false,
+    "metadata": {
+      "version": 3,
+      "sources": [
+        {
+          "name": "default",
+          "kind": "postgres",
+          "configuration": {
+            "connection_info": {
+              "database_url": { "from_env": "HASURA_GRAPHQL_DATABASE_URL" },
+              "isolation_level": "read-committed",
+              "use_prepared_statements": false
+            }
+          },
+          "tables": [
+            {
+              "table": { "schema": "demo", "name": "facility" },
+              "select_permissions": [
+                {
+                  "role": "user",
+                  "permission": {
+                    "columns": ["id", "tenant_id", "name", "kind", "created_at"],
+                    "filter": { "tenant_id": { "_eq": "X-Hasura-Tenant-Id" } }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
