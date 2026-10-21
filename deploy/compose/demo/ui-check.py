@@ -1,0 +1,81 @@
+"""Browser smoke test of the demo console: SSO login, sample upload, original-document viewer, tenant switch.
+
+Run with `make ui-check` (uses the pinned Playwright image on the host network). Screenshots go to SCREENSHOT_DIR.
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+
+from playwright.sync_api import Page, expect, sync_playwright
+
+BASE = os.environ.get("CONSOLE_URL", "http://localhost:9080")
+PASSWORD = os.environ["DEMO_USER_PASSWORD"]
+SHOTS = Path(os.environ.get("SCREENSHOT_DIR", "/tmp/ecotrace-ui"))
+SHOTS.mkdir(parents=True, exist_ok=True)
+failures: list[str] = []
+
+
+def check(ok: bool, message: str) -> None:
+    print(("PASS " if ok else "FAIL ") + message)
+    if not ok:
+        failures.append(message)
+
+
+def login(page: Page, user: str) -> None:
+    page.goto(BASE)
+    page.click("#login")
+    page.fill("#username", user)
+    page.fill("#password", PASSWORD)
+    page.click("#kc-login")
+    expect(page.locator("#app-view")).to_be_visible(timeout=20_000)
+
+
+def upload_first_sample(page: Page) -> None:
+    page.locator("#samples button").first.click()
+    expect(page.locator("#result-card")).to_be_visible(timeout=120_000)
+
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    page = browser.new_page(viewport={"width": 1366, "height": 900}, locale="vi-VN")
+
+    login(page, "alice")
+    check("Company A" in page.locator("#tenant-chip").inner_text(), "alice sees Company A after SSO login")
+    page.screenshot(path=SHOTS / "1-alice-home.png", full_page=True)
+
+    upload_first_sample(page)
+    title = page.locator("#result-title").inner_text()
+    check("điện" in title.lower(), f"electricity bill recognised (title: {title})")
+    check("188" in page.locator("#fields-body").inner_text(), "188,800 kWh shown in the fields table")
+    page.screenshot(path=SHOTS / "2-alice-result.png", full_page=True)
+
+    page.click("#view-original")
+    expect(page.locator("#viewer")).to_be_visible()
+    page.wait_for_timeout(1500)
+    page.screenshot(path=SHOTS / "3-alice-original.png")
+    page.click("#viewer-close")
+
+    page.click("[data-lang=en]")
+    page.wait_for_timeout(500)
+    check(page.locator("#result-card h2, .card h2").first.inner_text() != "", "English labels rendered")
+    check("Upload a document" in page.content(), "UI switched to English")
+    page.screenshot(path=SHOTS / "4-alice-english.png", full_page=True)
+    page.click("[data-lang=vi]")
+
+    page.click("#logout")
+    expect(page.locator("#login-view")).to_be_visible(timeout=20_000)
+
+    login(page, "bob")
+    check("Company B" in page.locator("#tenant-chip").inner_text(), "bob sees Company B after switching user")
+    page.wait_for_timeout(1000)
+    facilities = page.locator("#facilities").inner_text()
+    check("Hai Phong" not in facilities and "Binh Duong" in facilities, "bob only sees Company B facilities")
+    page.screenshot(path=SHOTS / "5-bob-home.png", full_page=True)
+
+    browser.close()
+
+print(f"Screenshots in {SHOTS}")
+sys.exit(1 if failures else 0)

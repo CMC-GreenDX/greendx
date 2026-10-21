@@ -43,6 +43,32 @@ Planned for the `core` Compose profile (Phase 1) unless noted. ✅ means the lic
 | Dashboards (operations) | Grafana | 13.2.4 | `grafana/grafana:13.2.4` | AGPL-3.0 ✅ | Operational dashboards; separate, unmodified container |
 | Backup (k8s phase) | Velero | v1.18.4 | `velero/velero:v1.18.4` | Apache-2.0 ✅ | Cluster backup in Phase 8. The Compose phase uses `pg_dump` from the PostgreSQL image |
 
+## Tier 2 capabilities
+
+| Component | Pinned version | Artifact | License | How it is used |
+|---|---|---|---|---|
+| Python (base image of Document Intake) | 3.13.16 | `python:3.13.16-slim-trixie` | PSF-2.0 ✅ (Debian packages under their own OSI licenses) | Runtime of the Document Intake service |
+| anthropic (Python SDK) | 1.17.0 | PyPI | MIT ✅ | Calls the Claude API (`AI_PROVIDER=claude`) |
+| google-genai (Python SDK) | 2.32.0 | PyPI | Apache-2.0 ✅ | Calls the Gemini API (`AI_PROVIDER=gemini`, default) |
+| FastAPI | 0.157.0 | PyPI | MIT ✅ | HTTP API of Document Intake |
+| Uvicorn | 0.54.0 | PyPI | BSD-3-Clause ✅ | ASGI server |
+| python-multipart | 0.0.32 | PyPI | Apache-2.0 ✅ | File uploads |
+| PyJWT | 2.15.1 | PyPI | MIT ✅ | Verifies Keycloak tokens inside the service |
+| cryptography | 50.0.2 | PyPI | Apache-2.0 OR BSD-3-Clause ✅ | RS256 signature verification |
+| asyncpg | 0.32.0 | PyPI | Apache-2.0 ✅ | PostgreSQL driver |
+| PyYAML | 6.0.3 | PyPI | MIT ✅ | Reads tenant config packs |
+| pypdf | 6.21.1 | PyPI | BSD-3-Clause ✅ | Text layer for the rule-based fallback |
+| nginx | 1.30.6 | `nginx:1.30.6-alpine` | BSD-2-Clause ✅ | Serves the static demo console |
+
+Transitive Python dependencies of Document Intake are resolved at image build time and are not yet locked; a lock file is a follow-up.
+
+### External service (not shipped, optional)
+
+| Service | Used by | License | Notes |
+|---|---|---|---|
+| Gemini API (Google), model `gemini-3.8-flash` (default provider) | Document Intake | **Proprietary hosted service, not an OSI-licensed component** | Optional. On the free tier Google may use submitted content to improve its products: send only fictional samples. See [ADR-0002](adr/0002-hosted-llm-api-for-document-intake.md) |
+| Claude API (Anthropic), model `claude-opus-5-5` | Document Intake | **Proprietary hosted service, not an OSI-licensed component** | Optional alternative provider (`AI_PROVIDER=claude`) |
+
 ### Blocked: decision pending
 
 | Concern | Component | Pinned version | Artifact | License | Problem |
@@ -84,6 +110,10 @@ GitHub Actions are pinned to the full commit SHA of the release tag, so a moved 
 | Docker-in-Docker feature | 4.1.3 | `ghcr.io/devcontainers/features/docker-in-docker` | MIT ✅ (repository `devcontainers/features`) | Runs Docker Compose inside the codespace |
 | SSH server feature | 1.1.0 | `ghcr.io/devcontainers/features/sshd` | MIT ✅ (repository `devcontainers/features`) | Allows `gh codespace ssh` for scripted runs |
 | jq, make | Ubuntu 24.04 package versions | apt | MIT ✅, GPL-3.0-or-later ✅ | Demo and health scripts; not pinned beyond the base image release |
+| Playwright (Python) and its image | 1.64.0 | `mcr.microsoft.com/playwright/python:v1.64.0-noble` | Apache-2.0 ✅ | Browser smoke test (`make ui-check`) only |
+| ReportLab | 5.0.1 | PyPI | BSD-3-Clause ✅ | Generates the fictional sample PDFs (`tools/seed`) |
+| Pillow | 13.0.0 | PyPI | MIT-CMU ✅ | Generates the fictional sample photos (`tools/seed`) |
+| DejaVu fonts | Ubuntu package | apt `fonts-dejavu-core` | Bitstream Vera license plus public-domain changes: a permissive font license, not an OSI software license (flagged) | Fonts embedded in the sample documents |
 
 Transitive npm dependencies are pinned in `package-lock.json`. As of 2026-10-19, their licenses are MIT, ISC, Apache-2.0, BSD-2-Clause, BSD-3-Clause, Python-2.0 and PSF-2.0 (`argparse`), all OSI-approved.
 

@@ -91,6 +91,48 @@ services:
       keycloak:
         condition: service_healthy
 
+  document-intake:
+    <<: *core
+    build: ../../capabilities/document-intake
+    image: ecotrace/document-intake:dev
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
+      JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
+      JWT_ISSUER: http://localhost:8080/realms/ecotrace
+      TENANTS_DIR: /config/tenants
+      STORAGE_DIR: /data/documents
+      # AI provider: gemini (default) or claude. Keys come from the shell (for example a Codespaces secret)
+      # and are never written to a file in the repository.
+      AI_PROVIDER: ${AI_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+      GEMINI_FALLBACK_MODELS: ${GEMINI_FALLBACK_MODELS:-gemini-3.6-flash,gemini-3.5-flash-lite}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-opus-5-5}
+      CLAUDE_EFFORT: ${CLAUDE_EFFORT:-low}
+    volumes:
+      - ../../tenants:/config/tenants:ro
+      - intake-documents:/data/documents
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  demo-console:
+    <<: *core
+    image: nginx:1.30.6-alpine
+    volumes:
+      - ../../capabilities/demo-console/public:/usr/share/nginx/html:ro
+      - ../../capabilities/demo-console/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../../tenants/company-a-steel/seed/documents:/srv/samples/company-a-steel:ro
+      - ../../tenants/company-b-logistics/seed/documents:/srv/samples/company-b-logistics:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
   apisix:
     <<: *core
     image: apache/apisix:3.19.0-debian
@@ -105,9 +147,14 @@ services:
     depends_on:
       hasura:
         condition: service_started
+      document-intake:
+        condition: service_started
+      demo-console:
+        condition: service_started
 
 networks:
   core:
 
 volumes:
   postgres-data:
+  intake-documents:

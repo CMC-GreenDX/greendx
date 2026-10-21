@@ -1,0 +1,7 @@
+# Tenant config pack: Company A (steel). Validated against core/schemas in Phase 2.
+id: company-a-steel
+name: Company A Steel (sample)
+locale: vi
+modules:
+  carbon-ledger: true
+  purchase-approval: true

@@ -1,0 +1,7 @@
+# Tenant config pack: Company B (logistics). Validated against core/schemas in Phase 2.
+id: company-b-logistics
+name: Company B Logistics (sample)
+locale: vi
+modules:
+  carbon-ledger: true
+  purchase-approval: false
