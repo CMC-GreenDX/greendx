@@ -101,7 +101,11 @@ services:
       JWT_ISSUER: http://localhost:8080/realms/ecotrace
       TENANTS_DIR: /config/tenants
       STORAGE_DIR: /data/documents
-      # Taken from the shell (for example a Codespaces secret); never written to a file in the repository.
+      # AI provider: gemini (default) or claude. Keys come from the shell (for example a Codespaces secret)
+      # and are never written to a file in the repository.
+      AI_PROVIDER: ${AI_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-opus-5-5}
       CLAUDE_EFFORT: ${CLAUDE_EFFORT:-low}

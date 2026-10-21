@@ -1,7 +1,7 @@
-"""Classifies a document and extracts fields, using the Claude API or a rule-based fallback.
+"""Classifies a document and extracts fields with a hosted LLM (Gemini or Claude) or a rule-based fallback.
 
 The schema of the answer is built from the tenant's document-types.yaml, so a new document type or
-field is a configuration change, not a code change.
+field is a configuration change, not a code change. The provider is chosen with AI_PROVIDER.
 """
 
 from __future__ import annotations
@@ -16,15 +16,22 @@ import unicodedata
 from dataclasses import dataclass, field
 
 import anthropic
+from google import genai
+from google.genai import errors as genai_errors
+from google.genai import types as genai_types
 from pypdf import PdfReader
 
 from .tenant_config import DocumentType, TenantConfig
 
 log = logging.getLogger("intake.extractor")
 
-MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
+PROVIDER = os.environ.get("AI_PROVIDER", "gemini").lower()
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
 # Classification and extraction are simple tasks; low effort keeps an upload to a few seconds.
-EFFORT = os.environ.get("CLAUDE_EFFORT", "low")
+CLAUDE_EFFORT = os.environ.get("CLAUDE_EFFORT", "low")
+_KEY_VARIABLE = {"gemini": "GEMINI_API_KEY", "claude": "ANTHROPIC_API_KEY"}
+MODEL = GEMINI_MODEL if PROVIDER == "gemini" else CLAUDE_MODEL
 UNKNOWN = "unknown"
 
 
@@ -51,22 +58,69 @@ class ExtractionFailed(Exception):
 
 
 def ai_enabled() -> bool:
-    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+    return PROVIDER in _KEY_VARIABLE and bool(os.environ.get(_KEY_VARIABLE[PROVIDER]))
 
 
 async def extract(tenant: TenantConfig, content: bytes, content_type: str) -> Extraction:
-    """Uses Claude when an API key is configured; falls back to rules if it is missing or the call fails."""
+    """Uses the configured AI provider when its key is set; falls back to rules if it is missing or the call fails."""
     if ai_enabled():
+        call = _extract_with_gemini if PROVIDER == "gemini" else _extract_with_claude
         try:
-            return _normalise(tenant, await _extract_with_claude(tenant, content, content_type))
+            return _normalise(tenant, await call(tenant, content, content_type))
         except ExtractionFailed as exc:
-            log.warning("Claude extraction failed, using rule-based fallback: %s", exc)
+            log.warning("%s extraction failed, using rule-based fallback: %s", PROVIDER, exc)
             result = _extract_with_rules(tenant, content, content_type)
             result.warnings.append(f"AI unavailable ({exc}); rule-based fallback used")
             return _normalise(tenant, result)
     result = _extract_with_rules(tenant, content, content_type)
-    result.warnings.append("No ANTHROPIC_API_KEY configured; rule-based fallback used")
+    result.warnings.append(f"No {_KEY_VARIABLE.get(PROVIDER, 'AI provider')} configured; rule-based fallback used")
     return _normalise(tenant, result)
+
+
+# --- Gemini -------------------------------------------------------------------------------------
+
+_gemini: genai.Client | None = None
+
+
+def _get_gemini() -> genai.Client:
+    global _gemini
+    if _gemini is None:
+        _gemini = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    return _gemini
+
+
+async def _extract_with_gemini(tenant: TenantConfig, content: bytes, content_type: str) -> Extraction:
+    try:
+        response = await _get_gemini().aio.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=[
+                genai_types.Part.from_bytes(data=content, mime_type=content_type),
+                "Classify this document and extract its fields.",
+            ],
+            config=genai_types.GenerateContentConfig(
+                system_instruction=_system_prompt(tenant),
+                response_mime_type="application/json",
+                response_json_schema=_output_schema(tenant),
+            ),
+        )
+    except genai_errors.APIError as exc:
+        raise ExtractionFailed(f"API error {exc.code}") from exc
+    except OSError as exc:
+        raise ExtractionFailed("cannot reach the API") from exc
+
+    if not response.text:
+        raise ExtractionFailed("no answer in the response")
+    try:
+        data = json.loads(response.text)
+    except json.JSONDecodeError as exc:
+        raise ExtractionFailed("answer is not valid JSON") from exc
+    return Extraction(
+        document_type=data["document_type"],
+        type_confidence=float(data["type_confidence"]),
+        fields=[ExtractedField(f["name"], f["value"], f["unit"], float(f["confidence"])) for f in data["fields"]],
+        extractor=GEMINI_MODEL,
+        notes=data.get("notes", ""),
+    )
 
 
 # --- Claude -------------------------------------------------------------------------------------
@@ -147,13 +201,13 @@ def _content_block(content: bytes, content_type: str) -> dict:
 async def _extract_with_claude(tenant: TenantConfig, content: bytes, content_type: str) -> Extraction:
     try:
         response = await _get_client().beta.messages.create(
-            model=MODEL,
+            model=CLAUDE_MODEL,
             max_tokens=16000,
             betas=["server-side-fallback-2026-07-01"],
             # On a safety decline, the API re-runs the request on Anthropic's recommended fallback model.
             extra_body={"fallbacks": "default"},
             output_config={
-                "effort": EFFORT,
+                "effort": CLAUDE_EFFORT,
                 "format": {"type": "json_schema", "schema": _output_schema(tenant)},
             },
             system=_system_prompt(tenant),
