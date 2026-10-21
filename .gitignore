@@ -1,0 +1,45 @@
+# Secrets and local environment (only .env.example is committed)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Node / Nuxt
+node_modules/
+.nuxt/
+.output/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Build, test and coverage output
+build/
+coverage/
+.coverage
+htmlcov/
+
+# Local runtime data for Docker Compose volumes
+deploy/compose/data/
+
+# Logs
+*.log
+
+# Editors and OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings
+.claude/settings.local.json
