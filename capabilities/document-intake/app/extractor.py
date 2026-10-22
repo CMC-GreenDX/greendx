@@ -307,6 +307,10 @@ def _extract_with_rules(tenant: TenantConfig, content: bytes, content_type: str)
 
 # --- Normalisation ------------------------------------------------------------------------------
 
+def normalise_number(value: str) -> str | None:
+    return _to_number(value)
+
+
 def _to_number(value: str) -> str | None:
     cleaned = re.sub(r"[^\d.,-]", "", value)
     if not cleaned:

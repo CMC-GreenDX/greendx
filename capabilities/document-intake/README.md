@@ -24,6 +24,9 @@ Not yet: a transactional outbox for events, and the review workflow (later Phase
 | `GET /intake/documents` | The tenant's documents, newest first |
 | `GET /intake/documents/{id}` | One document with its fields |
 | `GET /intake/documents/{id}/file` | The original file |
+| `POST /intake/documents/{id}/review` | Correct values (`{"values": {"field": "new value"}}`) and confirm the document; every change is kept, and `document.reviewed` is published |
+
+An upload whose SHA-256 matches a document the same tenant already has returns **409** with `duplicate_of`, before any AI call, so a bill is never counted twice.
 
 ## Configuration
 

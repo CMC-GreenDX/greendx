@@ -42,6 +42,23 @@ CREATE TABLE IF NOT EXISTS intake.extraction_field (
     confidence  real      NOT NULL
 );
 CREATE INDEX IF NOT EXISTS extraction_field_document_idx ON intake.extraction_field (document_id);
+
+ALTER TABLE intake.document ADD COLUMN IF NOT EXISTS reviewed_by text;
+ALTER TABLE intake.document ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
+CREATE INDEX IF NOT EXISTS document_tenant_sha_idx ON intake.document (tenant_id, sha256);
+
+-- Every human correction is kept: who changed which value, from what, to what, and when.
+CREATE TABLE IF NOT EXISTS intake.field_review (
+    id          bigserial   PRIMARY KEY,
+    document_id uuid        NOT NULL REFERENCES intake.document (id) ON DELETE CASCADE,
+    tenant_id   text        NOT NULL,
+    name        text        NOT NULL,
+    old_value   text,
+    new_value   text,
+    reviewed_by text        NOT NULL,
+    reviewed_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS field_review_document_idx ON intake.field_review (document_id);
 """
 
 pool: asyncpg.Pool | None = None
@@ -102,3 +119,44 @@ async def get_document(tenant_id: str, document_id: uuid.UUID) -> tuple[dict, li
         tenant_id, document_id,
     )
     return dict(doc), [dict(f) for f in fields]
+
+
+async def find_by_sha256(tenant_id: str, sha256: str) -> dict | None:
+    row = await pool.fetchrow(
+        "SELECT id, filename, created_at, uploaded_by FROM intake.document "
+        "WHERE tenant_id = $1 AND sha256 = $2 ORDER BY created_at LIMIT 1",
+        tenant_id, sha256,
+    )
+    return dict(row) if row else None
+
+
+async def review_document(tenant_id: str, document_id: uuid.UUID, reviewer: str, values: dict[str, str | None]) -> bool:
+    """Applies corrected values, records each change and marks the document reviewed. False if not found."""
+    async with pool.acquire() as conn, conn.transaction():
+        doc = await conn.fetchrow(
+            "SELECT id FROM intake.document WHERE tenant_id = $1 AND id = $2 FOR UPDATE", tenant_id, document_id)
+        if doc is None:
+            return False
+        current = {r["name"]: r["value"] for r in await conn.fetch(
+            "SELECT name, value FROM intake.extraction_field WHERE tenant_id = $1 AND document_id = $2",
+            tenant_id, document_id)}
+        for name, new_value in values.items():
+            if name not in current or current[name] == new_value:
+                continue
+            await conn.execute(
+                "INSERT INTO intake.field_review (document_id, tenant_id, name, old_value, new_value, reviewed_by) "
+                "VALUES ($1, $2, $3, $4, $5, $6)", document_id, tenant_id, name, current[name], new_value, reviewer)
+            await conn.execute(
+                "UPDATE intake.extraction_field SET value = $4 WHERE tenant_id = $1 AND document_id = $2 AND name = $3",
+                tenant_id, document_id, name, new_value)
+        await conn.execute(
+            "UPDATE intake.document SET status = 'reviewed', reviewed_by = $3, reviewed_at = now() "
+            "WHERE tenant_id = $1 AND id = $2", tenant_id, document_id, reviewer)
+    return True
+
+
+async def list_reviews(tenant_id: str, document_id: uuid.UUID) -> list[dict]:
+    rows = await pool.fetch(
+        "SELECT name, old_value, new_value, reviewed_by, reviewed_at FROM intake.field_review "
+        "WHERE tenant_id = $1 AND document_id = $2 ORDER BY reviewed_at, id", tenant_id, document_id)
+    return [dict(r) for r in rows]

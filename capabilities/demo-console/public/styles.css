@@ -85,6 +85,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 24px; }
 .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
 .badge-extracted { background: var(--accent-soft); color: var(--accent); }
 .badge-needs_review { background: var(--warn-soft); color: var(--warn); }
+.badge-reviewed { background: #e8eefc; color: #2547a8; }
 .badge-unrecognised { background: var(--bad-soft); color: var(--bad); }
 
 table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
@@ -107,3 +108,10 @@ dialog::backdrop { background: rgba(10, 20, 15, 0.5); }
 .viewer-body img { max-width: 100%; align-self: flex-start; }
 
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: #fff; padding: 12px 20px; border-radius: 8px; max-width: 90vw; }
+
+.field-input { width: 180px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+.field-input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+.history { margin: 0; padding-left: 18px; font-size: 0.9rem; }
+.history li { margin: 4px 0; }
+.history del { color: var(--bad); }
+.history ins { color: var(--accent); text-decoration: none; font-weight: 600; }

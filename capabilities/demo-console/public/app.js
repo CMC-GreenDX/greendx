@@ -12,6 +12,7 @@ let lang = 'vi';
 let tokens = null;
 let me = null;
 let current = null; // document shown in the result card
+let editing = false; // review mode of the result card
 
 // --- i18n ---------------------------------------------------------------------------------------
 
@@ -118,7 +119,10 @@ async function api(path, options = {}) {
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${res.status}`);
+    const err = new Error(body.detail || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.body = body;
+    throw err;
   }
   return res;
 }
@@ -187,9 +191,17 @@ function renderResult() {
   $('result-sub').textContent = t('result.sub', { file: doc.filename, confidence: pct(doc.type_confidence), extractor: doc.extractor });
   $('result-status').textContent = t(`status.${doc.status}`);
   $('result-status').className = `badge badge-${doc.status}`;
+  const reviewable = doc.document_type_label && doc.status !== 'reviewed';
+  $('review-start').hidden = !reviewable || editing;
+  $('review-actions').hidden = !editing;
+  $('result-reviewed').hidden = !doc.reviewed_by;
+  $('result-reviewed').textContent = doc.reviewed_by
+    ? t('review.by', { user: doc.reviewed_by, time: new Date(doc.reviewed_at).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-GB') }) : '';
   $('fields-body').replaceChildren(...fields.map((f) => h('tr', { class: f.needs_review ? 'review' : '' },
     h('td', {}, label(f.label)),
-    h('td', {}, f.value === null ? h('span', { class: 'muted' }, t('fields.missing')) : [h('strong', {}, formatValue(f)), f.unit ? ` ${f.unit}` : '']),
+    h('td', {}, editing
+      ? [h('input', { class: 'field-input', 'data-field': f.name, value: f.value ?? '', inputmode: f.type === 'number' ? 'decimal' : 'text' }), f.unit ? ` ${f.unit}` : '']
+      : f.value === null ? h('span', { class: 'muted' }, t('fields.missing')) : [h('strong', {}, formatValue(f)), f.unit ? ` ${f.unit}` : '']),
     h('td', {},
       h('div', { class: 'meter' }, h('span', { style: `width:${pct(f.confidence)}` })),
       h('small', {}, pct(f.confidence)),
@@ -197,6 +209,14 @@ function renderResult() {
   )));
   $('result-notes').hidden = !doc.notes;
   $('result-notes').textContent = doc.notes || '';
+  const reviews = current.reviews || [];
+  $('review-history').hidden = !reviews.length;
+  $('review-history-list').replaceChildren(...reviews.map((r) => {
+    const field = fields.find((f) => f.name === r.name);
+    return h('li', {}, h('strong', {}, field ? label(field.label) : r.name), ': ',
+      h('del', {}, r.old_value ?? '—'), ' → ', h('ins', {}, r.new_value ?? '—'),
+      h('small', { class: 'muted' }, ` · ${r.reviewed_by}, ${new Date(r.reviewed_at).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-GB')}`));
+  }));
 }
 
 async function renderDocuments() {
@@ -235,6 +255,7 @@ function renderAll() {
 
 async function upload(file) {
   current = null;
+  editing = false;
   renderResult();
   renderPipeline(null, true);
   const form = new FormData();
@@ -246,7 +267,29 @@ async function upload(file) {
     renderDocuments();
   } catch (err) {
     renderPipeline(null);
+    if (err.status === 409 && err.body?.duplicate_of) {
+      toast(t('duplicate.found', { file: err.body.filename, user: err.body.uploaded_by,
+        time: new Date(err.body.created_at).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-GB') }));
+      await showDocument(err.body.duplicate_of);
+      return;
+    }
     toast(t('error.upload', { message: err.message }));
+  }
+}
+
+async function saveReview() {
+  const values = {};
+  document.querySelectorAll('.field-input').forEach((input) => { values[input.dataset.field] = input.value; });
+  try {
+    current = await (await api(`/intake/documents/${current.document.id}/review`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values }),
+    })).json();
+    editing = false;
+    renderResult();
+    renderDocuments();
+    toast(t('review.saved'));
+  } catch (err) {
+    toast(t('error.review', { message: err.message }));
   }
 }
 
@@ -256,6 +299,7 @@ async function uploadSample(sample) {
 }
 
 async function showDocument(id) {
+  editing = false;
   current = await (await api(`/intake/documents/${id}`)).json();
   renderPipeline(null);
   renderResult();
@@ -285,6 +329,9 @@ function wireEvents() {
   zone.addEventListener('dragleave', () => zone.classList.remove('over'));
   zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('over'); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
   $('view-original').addEventListener('click', viewOriginal);
+  $('review-start').addEventListener('click', () => { editing = true; renderResult(); });
+  $('review-cancel').addEventListener('click', () => { editing = false; renderResult(); });
+  $('review-save').addEventListener('click', saveReview);
   $('viewer-close').addEventListener('click', () => $('viewer').close());
 }
 

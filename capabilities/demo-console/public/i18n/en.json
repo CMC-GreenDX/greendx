@@ -47,5 +47,14 @@
   "facilities.title": "Company facilities",
   "facilities.body": "Read through GraphQL (Hasura) behind the gateway; each company only sees its own data.",
   "error.upload": "Upload failed: {message}",
-  "error.session": "Your session has expired, please log in again."
+  "error.session": "Your session has expired, please log in again.",
+  "status.reviewed": "Reviewed",
+  "review.start": "Review / correct",
+  "review.save": "Save and confirm",
+  "review.cancel": "Cancel",
+  "review.saved": "Saved. The document is marked as reviewed.",
+  "review.by": "Reviewed by {user} at {time}",
+  "review.history": "Correction history",
+  "duplicate.found": "This document was already uploaded ({file}, by {user} at {time}). No duplicate was created, so emissions are not counted twice.",
+  "error.review": "Could not save: {message}"
 }

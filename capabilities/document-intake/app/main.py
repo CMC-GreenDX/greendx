@@ -11,6 +11,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from fastapi.responses import Response
 
 from . import db, events, extractor, scanner, storage, tenant_config
@@ -69,13 +71,16 @@ def _document_view(doc: dict, fields: list[dict], tenant: tenant_config.TenantCo
             "notes": doc.get("notes"),
             "uploaded_by": doc["uploaded_by"],
             "created_at": doc["created_at"].isoformat() if doc.get("created_at") else None,
+            "reviewed_by": doc.get("reviewed_by"),
+            "reviewed_at": doc["reviewed_at"].isoformat() if doc.get("reviewed_at") else None,
         },
         "fields": [
             {
                 **f,
                 "label": specs[f["name"]].label if f["name"] in specs else {"en": f["name"], "vi": f["name"]},
                 "type": specs[f["name"]].type if f["name"] in specs else "string",
-                "needs_review": f["confidence"] < tenant.review_threshold,
+                # Once a person has reviewed the document, every value is human-confirmed.
+                "needs_review": doc["status"] != "reviewed" and f["confidence"] < tenant.review_threshold,
             }
             for f in fields
         ],
@@ -127,10 +132,18 @@ async def upload(file: UploadFile, user: User = Depends(current_user)) -> dict:
     pipeline.append({"step": "scan", "status": "ok", "detail": "ClamAV: clean",
                      "ms": round((time.perf_counter() - started) * 1000)})
 
+    sha256 = hashlib.sha256(content).hexdigest()
+    existing = await db.find_by_sha256(tenant.tenant_id, sha256)
+    if existing:
+        # Same file already uploaded by this tenant: counting it again would double the emissions.
+        return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={
+            "detail": "Duplicate document", "duplicate_of": str(existing["id"]), "filename": existing["filename"],
+            "uploaded_by": existing["uploaded_by"], "created_at": existing["created_at"].isoformat(),
+        })
+
     started = time.perf_counter()
     document_id = uuid.uuid4()
     filename = (file.filename or "upload")[:200]
-    sha256 = hashlib.sha256(content).hexdigest()
     try:
         storage_uri = await storage.put(tenant.tenant_id, f"{document_id}{Path(filename).suffix.lower()[:8]}",
                                         content, content_type)
@@ -203,7 +216,56 @@ async def get_document(document_id: uuid.UUID, user: User = Depends(current_user
     found = await db.get_document(tenant.tenant_id, document_id)
     if found is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
-    return _document_view(*found, tenant)
+    view = _document_view(*found, tenant)
+    view["reviews"] = await _reviews(tenant.tenant_id, document_id)
+    return view
+
+
+async def _reviews(tenant_id: str, document_id: uuid.UUID) -> list[dict]:
+    return [{**r, "reviewed_at": r["reviewed_at"].isoformat()} for r in await db.list_reviews(tenant_id, document_id)]
+
+
+class Review(BaseModel):
+    values: dict[str, str | None] = {}
+
+
+@app.post("/intake/documents/{document_id}/review")
+async def review(document_id: uuid.UUID, body: Review, user: User = Depends(current_user)) -> dict:
+    """Corrects values and confirms the document. Values not sent are confirmed as they are."""
+    tenant = _tenant(user)
+    found = await db.get_document(tenant.tenant_id, document_id)
+    if found is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
+    doc_type = tenant.document_type(found[0]["document_type"])
+    if doc_type is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "An unrecognised document cannot be reviewed")
+    specs = {f.name: f for f in doc_type.fields}
+    values: dict[str, str | None] = {}
+    for name, value in body.values.items():
+        if name not in specs:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Unknown field {name}")
+        value = (value or "").strip() or None
+        if value is not None and specs[name].type == "number":
+            normalised = extractor.normalise_number(value)
+            if normalised is None:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"{name}: not a number")
+            value = normalised
+        values[name] = value
+    await db.review_document(tenant.tenant_id, document_id, user.username, values)
+
+    doc, fields = await db.get_document(tenant.tenant_id, document_id)
+    trace_id = uuid.uuid4().hex
+    published: list[dict] = []
+    await _publish(published, tenant.tenant_id, "document.reviewed", str(document_id), trace_id, {
+        "document_id": str(document_id), "document_type": doc["document_type"], "status": doc["status"],
+        "reviewed_by": user.username, "storage_uri": doc["storage_path"], "fields": fields,
+    })
+    log.info("document reviewed", extra={"context": {"trace_id": trace_id, "tenant_id": tenant.tenant_id,
+                                                     "document_id": str(document_id), "user": user.username}})
+    view = _document_view(doc, fields, tenant)
+    view["reviews"] = await _reviews(tenant.tenant_id, document_id)
+    view["published"] = published
+    return view
 
 
 @app.get("/intake/documents/{document_id}/file")
