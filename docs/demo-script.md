@@ -25,13 +25,15 @@ If something fails: `make logs` shows the service logs, and `make reset && make 
 |---|---|---|
 | 1 | Open <http://localhost:9080>, click **Đăng nhập bằng SSO**, log in as `alice` | One login through Keycloak. The token carries the company (tenant); the gateway and every service verify it. |
 | 2 | Point at the top bar and the configuration strip | Alice works for Company A (steel). Her company's configuration accepts three document types with an 80% confidence threshold. That is a YAML file in the tenant's config pack, not code. |
-| 3 | Click **Tải lên** next to the electricity bill sample | Watch the pipeline: token verified, file stored in Company A's own storage, AI classifies and extracts using Company A's configuration, result saved and linked to the original. |
+| 3 | Click **Tải lên** next to the electricity bill sample | Watch the pipeline: token verified, malware scan by ClamAV, file stored in Company A's own storage, AI classifies and extracts using Company A's configuration, result saved and linked to the original. |
 | 4 | Point at the extracted fields | 188,800 kWh, billing period and total amount, each with a confidence score. Anything below the threshold is flagged for a person to review: we never trust AI blindly. |
 | 5 | Click **Xem tài liệu gốc** | Every number can be traced back to its source document. This is the basis of the emission lineage the jury will see later. |
 | 6 | Upload the warehouse issue slip photo | A phone photo of a paper slip, in Vietnamese: the AI reads it directly, without a separate OCR step. |
 | 7 | Switch to **EN** and back | All UI text comes from translation files (Vietnamese and English). |
 | 8 | Log out, log in as `bob` | Company B (logistics) has a different configuration: it accepts fuel slips but not warehouse slips, with an 85% threshold. Bob does not see any of Alice's documents or facilities. |
 | 9 | Upload Bob's fuel slip photo | Same code, different company configuration: 185.4 litres of diesel, ready for Scope 1 later. |
+
+Optional, malware scan: in the terminal, `make intake-check` uploads the EICAR antivirus test file and shows it is rejected (HTTP 422) and never stored.
 
 Optional, in the terminal: `make demo` shows that a call without a token, or with a token whose tenant was edited by hand, is rejected with 401.
 
@@ -41,7 +43,7 @@ Optional, in the terminal: `make demo` shows that a call without a token, or wit
 - **"Gemini is free, so what does Google do with the data?"** On the free tier Google may use the content to improve its products, so we only send fictional sample documents. Real deployments use a paid tier, another provider, or the on-premise fallback.
 - **"Is the AI open source?"** No. Gemini (and the optional Claude provider) are hosted services and is not shipped with EcoTrace. Everything we ship is under OSI licenses ([docs/licenses.md](licenses.md)), and the extractor can be switched to a local model later.
 - **"Is isolation enforced in the database?"** Today it is enforced by the gateway (signature), the services (tenant claim on every query) and Hasura permissions. PostgreSQL row-level security comes in Phase 2.
-- **"Where are the other core services?"** OpenBao, SeaweedFS, NATS JetStream, Flowable, Kestra, Trillian, ClamAV and observability are the remaining Phase 1 work. Their choices and licenses are in [ADR-0001](adr/0001-core-technology-choices.md).
+- **"Where are the other core services?"** OpenBao, SeaweedFS, NATS JetStream, Flowable, Kestra, Trillian and observability are the remaining Phase 1 work. Their choices and licenses are in [ADR-0001](adr/0001-core-technology-choices.md).
 
 ## Consoles (optional)
 

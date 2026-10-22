@@ -54,6 +54,11 @@ others=$(curl -sS "$GATEWAY_URL/intake/documents" -H "Authorization: Bearer $bob
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY_URL/intake/documents" -F "file=@$SAMPLES/company-a-steel/tenant.yaml")
 [ "$code" = 401 ] && pass "upload without a token is rejected (HTTP 401)" || fail "upload without a token returned $code"
 
+eicar='X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*'
+code=$(printf '%s' "$eicar" | curl -s -o /tmp/eicar-reply -w '%{http_code}' -X POST "$GATEWAY_URL/intake/documents"   -H "Authorization: Bearer $alice" -F "file=@-;filename=eicar.pdf;type=application/pdf")
+before=$(curl -sS "$GATEWAY_URL/intake/documents" -H "Authorization: Bearer $alice" | jq '[.documents[] | select(.filename == "eicar.pdf")] | length')
+[ "$code" = 422 ] && [ "$before" = 0 ] && pass "EICAR test file rejected by ClamAV and not stored (HTTP 422)" || fail "EICAR upload returned $code, stored copies: $before"
+
 if [ -n "${CHECK_IMAGES:-}" ]; then
   result=$(upload "$bob" "$SAMPLES/company-b-logistics/seed/documents/fuel-slip-2026-09-12.jpg")
   jq -c '{type: .document.document_type, status: .document.status, fields: [.fields[] | {name, value, confidence}]}' <<<"$result"
