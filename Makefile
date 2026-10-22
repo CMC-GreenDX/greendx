@@ -10,7 +10,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -52,6 +52,9 @@ dxctl: ## Run the tenant CLI, e.g. make dxctl ARGS="tenant list"
 
 seed: ## Onboard the demo tenants (SEED_TENANTS) from their config packs; safe to repeat
 	@for t in $(SEED_TENANTS); do $(DXCTL) tenant create tenants/$$t || exit 1; done
+
+onboarding-check: ## Brief acceptance test: onboard company-c-cement from config only, log in, upload, disable
+	@bash deploy/compose/demo/onboarding-check.sh
 
 rls-check: ## Prove that PostgreSQL denies cross-tenant reads and writes for the service role
 	@bash deploy/compose/demo/rls-check.sh
