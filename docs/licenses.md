@@ -49,7 +49,9 @@ Planned for the `core` Compose profile (Phase 1) unless noted. ✅ means the lic
 |---|---|---|---|---|
 | Python (base image of Document Intake) | 3.13.16 | `python:3.13.16-slim-trixie` | PSF-2.0 ✅ (Debian packages under their own OSI licenses) | Runtime of the Document Intake service |
 | anthropic (Python SDK) | 1.17.0 | PyPI | MIT ✅ | Calls the Claude API (`AI_PROVIDER=claude`) |
-| boto3 | 1.43.117 | PyPI | Apache-2.0 ✅ | S3 client for SeaweedFS |
+| boto3 | 1.43.117 | PyPI | Apache-2.0 ✅ | S3 client for SeaweedFS (Document Intake, dxctl) |
+| jsonschema | 4.26.0 | PyPI | MIT ✅ | dxctl validates config packs |
+| requests | 2.34.2 | PyPI | Apache-2.0 ✅ | dxctl calls the Keycloak admin API |
 | nats-py | 2.16.0 | PyPI | Apache-2.0 ✅ | Publishes events to NATS JetStream |
 | google-genai (Python SDK) | 2.32.0 | PyPI | Apache-2.0 ✅ | Calls the Gemini API (`AI_PROVIDER=gemini`, default) |
 | FastAPI | 0.157.0 | PyPI | MIT ✅ | HTTP API of Document Intake |
