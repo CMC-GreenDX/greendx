@@ -101,6 +101,21 @@ with sync_playwright() as p:
     lineage = page.locator("#lineage-body").inner_text()
     check(".pdf" in lineage and "an.tran" in lineage, "lineage shows the source document and the approver")
     page.screenshot(path=SHOTS / "7-lineage.png")
+    page.click("#lineage-close")
+
+    page.on("dialog", lambda dialog: dialog.accept())
+    page.select_option("#ledger-period", "2026-09")
+    page.wait_for_timeout(1500)
+    if page.locator("#seal-close").is_visible():
+        page.click("#seal-close")
+        page.wait_for_timeout(4000)
+    expect(page.locator("#seal-verify")).to_be_visible(timeout=15_000)
+    page.click("#seal-verify")
+    expect(page.locator("#verify-result")).to_be_visible(timeout=15_000)
+    expected = os.environ.get("EXPECT_SEAL", "valid")
+    result = page.locator("#verify-result").get_attribute("class") or ""
+    check(("ok" in result) == (expected == "valid"), f"seal verification in the console shows '{expected}'")
+    page.screenshot(path=SHOTS / f"8-seal-{expected}.png", full_page=True)
 
     browser.close()
 

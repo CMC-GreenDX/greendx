@@ -85,7 +85,7 @@ events: ## Show the latest document events of TENANT (default company-a-steel) f
 PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright/python:v1.64.0-noble
 ui-check: ## Browser smoke test of the demo console; screenshots in /tmp/ecotrace-ui
 	@mkdir -p /tmp/ecotrace-ui
-	docker run --rm --network host -e DEMO_USER_PASSWORD -e SCREENSHOT_DIR=/shots \
+	docker run --rm --network host -e DEMO_USER_PASSWORD -e EXPECT_SEAL -e SCREENSHOT_DIR=/shots \
 		-v "$(CURDIR)/deploy/compose/demo:/tests:ro" -v /tmp/ecotrace-ui:/shots $(PLAYWRIGHT_IMAGE) \
 		bash -c "pip install -q --root-user-action=ignore playwright==1.64.0 && python /tests/ui-check.py"
 
