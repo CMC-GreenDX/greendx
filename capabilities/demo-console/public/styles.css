@@ -148,3 +148,6 @@ dialog::backdrop { background: rgba(10, 20, 15, 0.5); }
 .tasks small { display: block; color: var(--muted); }
 .tasks .done { color: var(--accent); font-size: 0.85rem; }
 .badge-pending { background: var(--warn-soft); color: var(--warn); }
+
+/* Elements marked hidden stay hidden even when a class sets display. */
+[hidden] { display: none !important; }
