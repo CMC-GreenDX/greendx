@@ -27,6 +27,8 @@ If something fails: `make logs` shows the service logs, and `make reset && make 
 | 2 | Point at the top bar and the configuration strip | Alice works for Company A (steel). Her company's configuration accepts three document types with an 80% confidence threshold. That is a YAML file in the tenant's config pack, not code. |
 | 3 | Click **Tải lên** next to the electricity bill sample | Watch the pipeline: token verified, malware scan by ClamAV, file stored in Company A's own storage, AI classifies and extracts using Company A's configuration, result saved and linked to the original. |
 | 4 | Point at the extracted fields | 188,800 kWh, billing period and total amount, each with a confidence score. Anything below the threshold is flagged for a person to review: we never trust AI blindly. |
+| 4b | Click **Duyệt / sửa**, change a value, click **Lưu và xác nhận** | A person always has the last word. The correction history keeps the old value, the new value, who changed it and when, and the reviewed values are published for Carbon Ledger. |
+| 4c | Click **Tải lên** on the same sample again | The same bill is not stored twice, so its emissions cannot be counted twice. |
 | 5 | Click **Xem tài liệu gốc** | Every number can be traced back to its source document. This is the basis of the emission lineage the jury will see later. |
 | 6 | Upload the warehouse issue slip photo | A phone photo of a paper slip, in Vietnamese: the AI reads it directly, without a separate OCR step. |
 | 7 | Switch to **EN** and back | All UI text comes from translation files (Vietnamese and English). |
