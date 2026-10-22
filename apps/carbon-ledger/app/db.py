@@ -280,3 +280,20 @@ async def lock_period(conn, tenant_id: str, period: str) -> dict:
     await conn.execute("INSERT INTO ledger.period (tenant_id, period) VALUES ($1, $2) ON CONFLICT DO NOTHING", tenant_id, period)
     return dict(await conn.fetchrow(
         "SELECT * FROM ledger.period WHERE tenant_id = $1 AND period = $2 FOR UPDATE", tenant_id, period))
+
+
+async def report_data(tenant_id: str, period: str | None) -> dict:
+    async with tenant_tx(tenant_id) as conn:
+        where, args = ("AND e.period = $2", [tenant_id, period]) if period else ("", [tenant_id])
+        entries = await conn.fetch(
+            f"""SELECT e.*, d.filename, d.sha256 AS document_sha256, d.reviewed_by
+                FROM ledger.emission_entry e
+                JOIN ledger.activity_record a ON a.id = e.activity_id
+                LEFT JOIN intake.document d ON d.id = a.document_id
+                WHERE e.tenant_id = $1 {where} ORDER BY e.period, e.scope, e.source_id""", *args)
+        periods = await conn.fetch("SELECT * FROM ledger.period WHERE tenant_id = $1 ORDER BY period", tenant_id)
+        name = await conn.fetchval("SELECT name FROM core.tenant WHERE id = $1", tenant_id)
+    data = [dict(r) for r in entries]
+    factors = {(e["factor_key"], e["factor_version"]): e for e in data}
+    return {"tenant_name": name or tenant_id, "entries": data, "periods": [dict(p) for p in periods],
+            "factors": list(factors.values())}

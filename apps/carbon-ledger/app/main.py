@@ -10,9 +10,10 @@ import uuid
 from contextlib import asynccontextmanager, suppress
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.responses import Response
 from pydantic import BaseModel
 
-from . import config, consumer, db, seal
+from . import config, consumer, db, report, seal
 from .auth import User, current_user
 
 
@@ -168,3 +169,21 @@ async def verify_period(period: str, user: User = Depends(current_user)) -> dict
                                                                   "changed": result["changed"], "removed": result["removed"],
                                                                   "added": result["added"]}})
     return _json(result)
+
+
+@app.get("/ledger/report")
+async def export_report(period: str | None = None, format: str = "xlsx", user: User = Depends(current_user)) -> Response:
+    """Inventory report of a period (or all periods) as XLSX or CSV, with lineage columns and factors used."""
+    await _tenant(user)
+    if period and not re.match(_PERIOD, period):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Period must be YYYY-MM")
+    data = await db.report_data(user.tenant_id, period)
+    name = f"ecotrace-{user.tenant_id}-{period or 'all'}"
+    if format == "csv":
+        return Response(report.csv_bytes(data["entries"]), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="{name}.csv"'})
+    if format != "xlsx":
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "format must be xlsx or csv")
+    content = report.xlsx(data["tenant_name"], period, data["entries"], data["periods"], data["factors"])
+    return Response(content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'})

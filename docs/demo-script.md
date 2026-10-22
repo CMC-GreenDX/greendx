@@ -38,6 +38,8 @@ If something fails: `make logs` shows the service logs, and `make reset && make 
 | 8 | Log out, log in as `bob` | Company B (logistics) has a different configuration: it accepts fuel slips but not warehouse slips, with an 85% threshold. Bob does not see any of Alice's documents or facilities. |
 | 8b | As `bob`, upload and confirm Bob's electricity bill; Bob sees step 1 "Đội xe kiểm tra" in his inbox. After he approves, step 2 goes to `binh.le` (finance) | Same code, different company: Company B's BPMN has two steps. Who sees which task comes from roles in `org.yaml`. |
 | 8c | As `alice`, upload a purchase invoice | It goes to Purchase Approval, not the emission ledger: a second app reuses the same intake, events and workflow. Company B has this module disabled. |
+| 8d | Upload the sample **e-invoice XML** | Most Vietnamese invoices are e-invoices: their values are read straight from the XML, exact, free and with no AI. |
+| 8e | In the ledger, click **Xuất Excel** | The inventory report the company submits: totals by scope, every figure with its source document, factor version, reviewer and approver. |
 | 9 | Upload Bob's fuel slip photo | Same code, different company configuration: 185.4 litres of diesel, ready for Scope 1 later. |
 
 Optional, events: `make events TENANT=company-a-steel` prints the CloudEvents that Intake published for the last upload, including the extracted fields. This is what Carbon Ledger will consume.

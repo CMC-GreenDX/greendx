@@ -3,6 +3,7 @@ asyncpg==0.32.0
 cryptography==50.0.2
 fastapi==0.157.0
 nats-py==2.16.0
+openpyxl==3.1.5
 PyJWT==2.15.1
 PyYAML==6.0.3
 uvicorn==0.54.0

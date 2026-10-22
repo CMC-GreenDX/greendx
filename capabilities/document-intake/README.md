@@ -8,6 +8,7 @@ Document Intake capability (Python FastAPI). It turns an uploaded PDF or photo i
 2. The file is streamed to ClamAV (clamd INSTREAM). Infected files are rejected with 422 and never stored; if the scanner is down, the upload is refused with 503 (fail closed).
 3. The original file is stored in the tenant's own SeaweedFS bucket `ecotrace-<tenant_id>` (created on first use until `dxctl` exists). `document.received` is published.
 4. Classification and extraction:
+   - **e-invoice XML** (GDT format, Decree 123/2020, Circular 78/2021): read deterministically from the XML elements (`SHDon`, `NLap`, `NBan`, `TToan`, line items), confidence 1.0, no AI call. The type follows from the line units: kWh means an electricity bill, litres of fuel mean a fuel slip, anything else is a purchase invoice, always limited to the types the tenant accepts. The digital signature is not yet verified against the GDT;
    - with the provider's key (`GEMINI_API_KEY` by default, or `ANTHROPIC_API_KEY` with `AI_PROVIDER=claude`): the LLM reads the PDF or image and answers in a JSON schema built from the tenant's config ([ADR-0002](../../docs/adr/0002-hosted-llm-api-for-document-intake.md));
    - without a key, or if the API fails: a rule-based fallback (keywords and regular expressions from the same config).
 5. Values are normalised (numbers, ISO dates); fields below the tenant's `review_threshold` are flagged for review.

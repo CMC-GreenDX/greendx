@@ -42,7 +42,7 @@
         <article class="card">
           <h2 data-i18n="upload.title"></h2>
           <label class="dropzone" id="dropzone">
-            <input type="file" id="file-input" accept="application/pdf,image/png,image/jpeg,image/webp" hidden>
+            <input type="file" id="file-input" accept="application/pdf,image/png,image/jpeg,image/webp,.xml,application/xml,text/xml" hidden>
             <span data-i18n="upload.drop"></span>
           </label>
           <h3 data-i18n="samples.title"></h3>
@@ -101,7 +101,11 @@
             <h2 data-i18n="ledger.title"></h2>
             <p class="muted" data-i18n="ledger.body"></p>
           </div>
-          <label class="period-select"><span data-i18n="ledger.period"></span> <select id="ledger-period"></select></label>
+          <div class="result-actions">
+            <label class="period-select"><span data-i18n="ledger.period"></span> <select id="ledger-period"></select></label>
+            <button class="secondary small" id="export-xlsx" data-i18n="ledger.exportXlsx"></button>
+            <button class="link" id="export-csv" data-i18n="ledger.exportCsv"></button>
+          </div>
         </div>
         <div class="kpis">
           <div class="kpi"><small data-i18n="ledger.scope1"></small><strong id="kpi-scope1">–</strong><span>tCO₂e</span></div>

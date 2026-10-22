@@ -14,7 +14,7 @@
   "ai.model": "AI: {model}",
   "ai.rules": "AI: rule-based fallback",
   "upload.title": "Upload a document",
-  "upload.drop": "Drop or click to choose a PDF / image (up to 10 MB)",
+  "upload.drop": "Drop or click to choose a PDF, an image or an e-invoice XML (up to 10 MB)",
   "samples.title": "Sample documents",
   "samples.empty": "No sample documents for this company.",
   "pipeline.title": "Processing pipeline",
@@ -128,5 +128,7 @@
   "purchase.empty": "No purchase requests yet.",
   "purchase.status.pending": "Pending",
   "purchase.status.approved": "Approved",
-  "purchase.status.rejected": "Rejected"
+  "purchase.status.rejected": "Rejected",
+  "ledger.exportXlsx": "Export Excel",
+  "ledger.exportCsv": "CSV"
 }

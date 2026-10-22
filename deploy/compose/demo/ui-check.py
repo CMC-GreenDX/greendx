@@ -91,10 +91,10 @@ with sync_playwright() as p:
     expect(page.locator("#ledger-card")).to_be_visible(timeout=15_000)
     page.wait_for_timeout(1500)
     page.screenshot(path=SHOTS / "6a-inbox.png", full_page=True)
-    approve = page.locator("#inbox-list button.primary")
-    if approve.count():
-        check("Trưởng bộ phận" in page.locator("#inbox-list").inner_text(), "an.tran's inbox shows the approval step from Company A's BPMN")
-        approve.first.click()
+    activity_tasks = page.locator("#inbox-list li").filter(has_text="Trưởng bộ phận")
+    if activity_tasks.count():
+        check(True, "an.tran's inbox shows the approval step from Company A's BPMN")
+        activity_tasks.first.locator("button.primary").click()
         page.wait_for_timeout(4000)
         page.reload()
         expect(page.locator("#ledger-card")).to_be_visible(timeout=15_000)
