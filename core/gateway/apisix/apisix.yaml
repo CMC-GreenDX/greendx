@@ -28,6 +28,10 @@ upstreams:
     type: roundrobin
     nodes:
       "purchase-approval:8000": 1
+  - id: keycloak
+    type: roundrobin
+    nodes:
+      "keycloak:8080": 1
   - id: demo-console
     type: roundrobin
     nodes:
@@ -146,6 +150,24 @@ routes:
         key: remote_addr
         rejected_code: 429
         policy: local
+
+  # Keycloak login pages on the same origin as the console, so one public URL is enough.
+  # Only the ecotrace realm and static resources: the admin console and the master realm stay private.
+  - id: keycloak-realm
+    uri: /realms/ecotrace/*
+    upstream_id: keycloak
+    plugins:
+      limit-count:
+        count: 300
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        rejected_code: 429
+        policy: local
+
+  - id: keycloak-resources
+    uri: /resources/*
+    upstream_id: keycloak
 
   - id: gateway-health
     uri: /gateway/health
