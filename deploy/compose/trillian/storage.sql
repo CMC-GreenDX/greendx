@@ -1,3 +1,6 @@
+-- Copied unchanged from github.com/google/trillian v1.8.0, storage/postgresql/schema/storage.sql.
+-- Copyright Google LLC, Apache License 2.0. Applied by deploy/compose/postgres/migrate.sh.
+
 -- PostgreSQL version of the tree schema.
 --
 -- Each statement must end with a semicolon, and there must be a blank line before the next statement.

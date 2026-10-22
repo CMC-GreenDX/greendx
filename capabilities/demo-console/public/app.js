@@ -282,6 +282,7 @@ function renderLedger() {
   $('kpi-scope1').textContent = tonnes(summary.scope1_kg);
   $('kpi-scope2').textContent = tonnes(summary.scope2_kg);
   $('kpi-total').textContent = tonnes(summary.scope1_kg + summary.scope2_kg);
+  renderSeal();
 
   const pending = ledger.activities.filter((a) => a.status !== 'approved');
   $('pending-body').replaceChildren(...(pending.length ? pending.map((a) => h('tr', {},
@@ -301,6 +302,50 @@ function renderLedger() {
     h('td', {}, qty(e.quantity, e.unit)),
     h('td', {}, h('strong', {}, tonnes(e.co2e_kg)), ' tCO₂e'),
   )) : [h('tr', {}, h('td', { colspan: 4, class: 'muted' }, t('ledger.noEntries')))]));
+}
+
+function renderSeal() {
+  const period = $('ledger-period').value;
+  const info = ledger.summary.periods.find((p) => p.period === period);
+  $('seal-panel').hidden = !info;
+  if (!info) { $('verify-result').hidden = true; return; }
+  const closed = info.status === 'closed';
+  $('seal-title').textContent = closed ? t('seal.closed', { period }) : t('seal.open', { period });
+  $('seal-detail').textContent = closed
+    ? t('seal.detail', { count: info.entry_count, index: info.leaf_index, size: info.tree_size, root: (info.root_hash || '').slice(0, 16), user: info.closed_by })
+    : t('seal.openHint');
+  $('seal-close').hidden = closed || !ledger.can_approve;
+  $('seal-verify').hidden = !closed;
+}
+
+async function closePeriod() {
+  const period = $('ledger-period').value;
+  if (!period || !confirm(t('seal.confirm', { period }))) return;
+  try {
+    await api(`/ledger/periods/${period}/close`, { method: 'POST' });
+    toast(t('seal.sealed', { period }));
+  } catch (err) {
+    toast(err.message);
+  }
+  loadLedger();
+}
+
+async function verifyPeriod() {
+  const period = $('ledger-period').value;
+  const box = $('verify-result');
+  try {
+    const r = await (await api(`/ledger/periods/${period}/verify`)).json();
+    const problems = [...r.changed.map((e) => [t('seal.changed'), e]), ...r.removed.map((e) => [t('seal.removed'), e]), ...r.added.map((e) => [t('seal.added'), e])];
+    box.className = `verify-result ${r.valid ? 'ok' : 'bad'}`;
+    box.replaceChildren(
+      h('strong', {}, r.valid ? t('seal.valid', { count: r.entry_count }) : t('seal.invalid')),
+      h('small', { class: 'muted' }, ` · ${t('seal.logInfo', { index: r.leaf_index, size: r.tree_size, root: r.root_hash.slice(0, 16) })}`),
+      problems.length ? h('ul', {}, ...problems.map(([kind, e]) => h('li', {}, `${kind}: ${e.filename || e.entry_id} (${e.source_id || ''}${e.co2e_kg !== undefined ? `, ${tonnes(e.co2e_kg)} tCO₂e ${t('seal.now')}` : ''})`))) : '');
+  } catch (err) {
+    box.className = 'verify-result bad';
+    box.textContent = err.message;
+  }
+  box.hidden = false;
 }
 
 async function decide(id, action) {
@@ -420,7 +465,9 @@ function wireEvents() {
   $('review-start').addEventListener('click', () => { editing = true; renderResult(); });
   $('review-cancel').addEventListener('click', () => { editing = false; renderResult(); });
   $('review-save').addEventListener('click', saveReview);
-  $('ledger-period').addEventListener('change', loadLedger);
+  $('ledger-period').addEventListener('change', () => { $('verify-result').hidden = true; loadLedger(); });
+  $('seal-close').addEventListener('click', closePeriod);
+  $('seal-verify').addEventListener('click', verifyPeriod);
   $('lineage-close').addEventListener('click', () => $('lineage').close());
   $('viewer-close').addEventListener('click', () => $('viewer').close());
 }

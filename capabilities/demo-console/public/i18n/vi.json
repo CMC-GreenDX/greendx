@@ -96,5 +96,20 @@
   "lineage.factor": "5. Hệ số phát thải (phiên bản đã dùng)",
   "lineage.provisional": "Hệ số tạm thời: cần thay bằng giá trị công bố chính thức trước khi báo cáo.",
   "lineage.entry": "6. Kết quả",
-  "lineage.period": "7. Kỳ báo cáo"
+  "lineage.period": "7. Kỳ báo cáo",
+  "seal.open": "Kỳ {period} đang mở",
+  "seal.openHint": "Khi mọi hoạt động đã được phê duyệt, khoá kỳ để niêm phong số liệu trong sổ Trillian (không thể sửa lại).",
+  "seal.closed": "Kỳ {period} đã khoá và niêm phong",
+  "seal.detail": "{count} bản ghi · lá #{index} trong cây Trillian kích thước {size} · gốc {root}… · khoá bởi {user}",
+  "seal.close": "Khoá kỳ & niêm phong",
+  "seal.verify": "Kiểm tra niêm phong",
+  "seal.confirm": "Khoá kỳ {period}? Sau khi khoá không thể phê duyệt thêm hay sửa số liệu của kỳ này.",
+  "seal.sealed": "Đã khoá kỳ {period} và ghi niêm phong vào sổ Trillian.",
+  "seal.valid": "Niêm phong hợp lệ: {count} bản ghi khớp với dữ liệu đã niêm phong.",
+  "seal.invalid": "PHÁT HIỆN SỬA ĐỔI: dữ liệu hiện tại không khớp với niêm phong trong sổ Trillian.",
+  "seal.logInfo": "lá #{index}, cây kích thước {size}, gốc {root}…",
+  "seal.changed": "Bị sửa",
+  "seal.removed": "Bị xoá",
+  "seal.added": "Bị thêm",
+  "seal.now": "hiện tại"
 }

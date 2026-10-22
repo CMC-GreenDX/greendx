@@ -102,6 +102,17 @@
           <div class="kpi"><small data-i18n="ledger.scope2"></small><strong id="kpi-scope2">–</strong><span>tCO₂e</span></div>
           <div class="kpi kpi-total"><small data-i18n="ledger.total"></small><strong id="kpi-total">–</strong><span>tCO₂e</span></div>
         </div>
+        <div class="seal" id="seal-panel" hidden>
+          <div>
+            <strong id="seal-title"></strong>
+            <small class="muted" id="seal-detail"></small>
+          </div>
+          <div class="result-actions">
+            <button class="primary" id="seal-close" data-i18n="seal.close" hidden></button>
+            <button class="secondary" id="seal-verify" data-i18n="seal.verify" hidden></button>
+          </div>
+        </div>
+        <div class="verify-result" id="verify-result" hidden></div>
         <h3 data-i18n="ledger.pending"></h3>
         <table class="list">
           <thead>
