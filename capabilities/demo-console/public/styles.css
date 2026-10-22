@@ -115,3 +115,22 @@ dialog::backdrop { background: rgba(10, 20, 15, 0.5); }
 .history li { margin: 4px 0; }
 .history del { color: var(--bad); }
 .history ins { color: var(--accent); text-decoration: none; font-weight: 600; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 8px 0 20px; }
+.kpi { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.kpi small { display: block; color: var(--muted); }
+.kpi strong { font-size: 1.8rem; margin-right: 6px; }
+.kpi span { color: var(--muted); }
+.kpi-total { background: var(--accent-soft); border-color: transparent; }
+.period-select select { font: inherit; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); }
+.badge-pending_approval { background: var(--warn-soft); color: var(--warn); }
+.badge-approved { background: var(--accent-soft); color: var(--accent); }
+.badge-rejected { background: var(--bad-soft); color: var(--bad); }
+#lineage { height: auto; max-height: 90vh; }
+.lineage { list-style: none; margin: 0; padding: 16px 24px 24px; overflow: auto; }
+.lineage li { position: relative; padding: 0 0 18px 28px; border-left: 2px solid var(--border); margin-left: 8px; }
+.lineage li:last-child { border-left-color: transparent; }
+.lineage li::before { content: ""; position: absolute; left: -8px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); }
+.lineage li strong { display: block; }
+.lineage li small { display: block; color: var(--muted); margin-top: 2px; }
+.lineage .warn { color: var(--warn); }

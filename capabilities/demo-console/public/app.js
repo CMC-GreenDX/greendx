@@ -13,6 +13,7 @@ let tokens = null;
 let me = null;
 let current = null; // document shown in the result card
 let editing = false; // review mode of the result card
+let ledger = null; // { activities, can_approve, summary }
 
 // --- i18n ---------------------------------------------------------------------------------------
 
@@ -249,6 +250,92 @@ function renderAll() {
   renderPipeline(current?.pipeline || null);
   renderResult();
   renderDocuments().catch(() => {});
+  renderLedger();
+}
+
+// --- Carbon Ledger ------------------------------------------------------------------------------
+
+const tonnes = (kg) => new Intl.NumberFormat(lang === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 2 }).format((kg || 0) / 1000);
+const qty = (v, unit) => `${numberFormat().format(Number(v))} ${unit}`;
+
+async function loadLedger() {
+  try {
+    const activities = await (await api('/ledger/activities')).json();
+    const period = $('ledger-period').value || '';
+    const summary = await (await api(`/ledger/summary${period ? `?period=${period}` : ''}`)).json();
+    ledger = { ...activities, summary };
+  } catch (err) {
+    ledger = null; // module disabled for this tenant, or not reachable
+  }
+  renderLedger();
+}
+
+function renderLedger() {
+  $('ledger-card').hidden = !ledger;
+  if (!ledger) return;
+  const { summary } = ledger;
+  const select = $('ledger-period');
+  const chosen = select.value;
+  select.replaceChildren(h('option', { value: '' }, t('ledger.allPeriods')),
+    ...summary.periods.map((p) => h('option', { value: p.period }, `${p.period}${p.status === 'closed' ? ' 🔒' : ''}`)));
+  select.value = chosen;
+  $('kpi-scope1').textContent = tonnes(summary.scope1_kg);
+  $('kpi-scope2').textContent = tonnes(summary.scope2_kg);
+  $('kpi-total').textContent = tonnes(summary.scope1_kg + summary.scope2_kg);
+
+  const pending = ledger.activities.filter((a) => a.status !== 'approved');
+  $('pending-body').replaceChildren(...(pending.length ? pending.map((a) => h('tr', {},
+    h('td', {}, a.filename || a.document_id),
+    h('td', {}, `${a.source_name} · ${t('ledger.scopeN', { n: a.scope })}`),
+    h('td', {}, qty(a.quantity, a.unit), h('small', { class: 'muted' }, ` · ${a.period}`)),
+    h('td', {}, h('span', { class: `badge badge-${a.status}` }, t(`ledger.status.${a.status}`))),
+    h('td', {}, a.status === 'pending_approval' && ledger.can_approve
+      ? [h('button', { class: 'primary small', onclick: () => decide(a.id, 'approve') }, t('ledger.approve')), ' ',
+        h('button', { class: 'link', onclick: () => decide(a.id, 'reject') }, t('ledger.reject'))]
+      : a.status === 'pending_approval' ? h('small', { class: 'muted' }, t('ledger.waitingApprover')) : (a.reject_reason || '')),
+  )) : [h('tr', {}, h('td', { colspan: 5, class: 'muted' }, t('ledger.nonePending')))]));
+
+  $('entries-body').replaceChildren(...(summary.entries.length ? summary.entries.map((e) => h('tr', { class: 'clickable', onclick: () => showLineage(e.id) },
+    h('td', {}, e.period),
+    h('td', {}, `${e.source_id} · ${t('ledger.scopeN', { n: e.scope })}`),
+    h('td', {}, qty(e.quantity, e.unit)),
+    h('td', {}, h('strong', {}, tonnes(e.co2e_kg)), ' tCO₂e'),
+  )) : [h('tr', {}, h('td', { colspan: 4, class: 'muted' }, t('ledger.noEntries')))]));
+}
+
+async function decide(id, action) {
+  let body;
+  if (action === 'reject') {
+    const reason = prompt(t('ledger.rejectReason'));
+    if (!reason) return;
+    body = JSON.stringify({ reason });
+  }
+  try {
+    await api(`/ledger/activities/${id}/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+    toast(t(action === 'approve' ? 'ledger.approved' : 'ledger.rejected'));
+  } catch (err) {
+    toast(err.message);
+  }
+  loadLedger();
+}
+
+async function showLineage(entryId) {
+  const l = await (await api(`/ledger/entries/${entryId}/lineage`)).json();
+  const when = (v) => (v ? new Date(v).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-GB') : '');
+  const steps = [
+    [t('lineage.document'), `${l.document.filename}`, `${t('lineage.uploadedBy', { user: l.document.uploaded_by, time: when(l.document.created_at) })} · ${l.document.extractor} · SHA-256 ${l.document.sha256.slice(0, 12)}…`,
+      h('button', { class: 'secondary small', onclick: () => viewOriginal(l.document) }, t('action.viewOriginal'))],
+    [t('lineage.review'), l.document.reviewed_by ? t('review.by', { user: l.document.reviewed_by, time: when(l.document.reviewed_at) }) : t('lineage.autoAccepted'),
+      l.corrections.length ? l.corrections.map((c) => `${c.name}: ${c.old_value ?? '—'} → ${c.new_value ?? '—'} (${c.reviewed_by})`).join('; ') : t('lineage.noCorrections')],
+    [t('lineage.activity'), `${qty(l.activity.quantity, l.activity.unit)} · ${l.activity.source_name}`, `${t('ledger.scopeN', { n: l.activity.scope })} · ${l.activity.facility_code || ''} · ${t('ledger.period')} ${l.activity.period}`],
+    [t('lineage.approval'), t('lineage.approvedBy', { user: l.activity.decided_by, time: when(l.activity.decided_at) }), ''],
+    [t('lineage.factor'), `${l.entry.factor_value} ${l.entry.factor_unit} · ${l.entry.factor_version}`, l.entry.factor_source,
+      l.entry.factor_status === 'provisional' ? h('small', { class: 'warn' }, t('lineage.provisional')) : ''],
+    [t('lineage.entry'), `${tonnes(l.entry.co2e_kg)} tCO₂e`, `${qty(l.entry.quantity, l.entry.unit)} × ${l.entry.factor_value} = ${numberFormat().format(l.entry.co2e_kg)} kg`],
+    [t('lineage.period'), `${l.period.period} · ${t(`ledger.periodStatus.${l.period.status}`)}`, l.period.closed_by ? `${l.period.closed_by}, ${when(l.period.closed_at)}` : ''],
+  ];
+  $('lineage-body').replaceChildren(...steps.map(([title, main, detail, extra]) => h('li', {}, h('small', {}, title), h('strong', {}, main), h('small', {}, detail || ''), extra || '')));
+  $('lineage').showModal();
 }
 
 // --- Actions ------------------------------------------------------------------------------------
@@ -265,6 +352,7 @@ async function upload(file) {
     renderPipeline(current.pipeline);
     renderResult();
     renderDocuments();
+    setTimeout(loadLedger, 2500); // the ledger consumes the event asynchronously
   } catch (err) {
     renderPipeline(null);
     if (err.status === 409 && err.body?.duplicate_of) {
@@ -288,6 +376,7 @@ async function saveReview() {
     renderResult();
     renderDocuments();
     toast(t('review.saved'));
+    setTimeout(loadLedger, 2500);
   } catch (err) {
     toast(t('error.review', { message: err.message }));
   }
@@ -306,9 +395,8 @@ async function showDocument(id) {
   $('result-card').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function viewOriginal() {
-  if (!current) return;
-  const { document: doc } = current;
+async function viewOriginal(doc = current?.document) {
+  if (!doc) return;
   const url = URL.createObjectURL(await (await api(`/intake/documents/${doc.id}/file`)).blob());
   $('viewer-title').textContent = doc.filename;
   $('viewer-body').replaceChildren(doc.content_type === 'application/pdf'
@@ -328,10 +416,12 @@ function wireEvents() {
   zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('over'));
   zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('over'); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
-  $('view-original').addEventListener('click', viewOriginal);
+  $('view-original').addEventListener('click', () => viewOriginal());
   $('review-start').addEventListener('click', () => { editing = true; renderResult(); });
   $('review-cancel').addEventListener('click', () => { editing = false; renderResult(); });
   $('review-save').addEventListener('click', saveReview);
+  $('ledger-period').addEventListener('change', loadLedger);
+  $('lineage-close').addEventListener('click', () => $('lineage').close());
   $('viewer-close').addEventListener('click', () => $('viewer').close());
 }
 
@@ -355,6 +445,7 @@ async function start() {
   $('app-view').hidden = false;
   renderAll();
   renderFacilities().catch(() => {});
+  loadLedger();
 }
 
 start();

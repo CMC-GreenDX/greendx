@@ -89,6 +89,46 @@
         </div>
       </article>
 
+      <article class="card" id="ledger-card" hidden>
+        <div class="result-head">
+          <div>
+            <h2 data-i18n="ledger.title"></h2>
+            <p class="muted" data-i18n="ledger.body"></p>
+          </div>
+          <label class="period-select"><span data-i18n="ledger.period"></span> <select id="ledger-period"></select></label>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><small data-i18n="ledger.scope1"></small><strong id="kpi-scope1">–</strong><span>tCO₂e</span></div>
+          <div class="kpi"><small data-i18n="ledger.scope2"></small><strong id="kpi-scope2">–</strong><span>tCO₂e</span></div>
+          <div class="kpi kpi-total"><small data-i18n="ledger.total"></small><strong id="kpi-total">–</strong><span>tCO₂e</span></div>
+        </div>
+        <h3 data-i18n="ledger.pending"></h3>
+        <table class="list">
+          <thead>
+            <tr>
+              <th data-i18n="ledger.document"></th>
+              <th data-i18n="ledger.source"></th>
+              <th data-i18n="ledger.quantity"></th>
+              <th data-i18n="documents.status"></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="pending-body"></tbody>
+        </table>
+        <h3 data-i18n="ledger.entries"></h3>
+        <table class="list">
+          <thead>
+            <tr>
+              <th data-i18n="ledger.period"></th>
+              <th data-i18n="ledger.source"></th>
+              <th data-i18n="ledger.quantity"></th>
+              <th data-i18n="ledger.emissions"></th>
+            </tr>
+          </thead>
+          <tbody id="entries-body"></tbody>
+        </table>
+      </article>
+
       <div class="grid">
         <article class="card">
           <h2 data-i18n="documents.title"></h2>
@@ -120,6 +160,14 @@
       <button class="link" id="viewer-close" data-i18n="action.close"></button>
     </div>
     <div class="viewer-body" id="viewer-body"></div>
+  </dialog>
+
+  <dialog id="lineage">
+    <div class="viewer-head">
+      <strong data-i18n="lineage.title"></strong>
+      <button class="link" id="lineage-close" data-i18n="action.close"></button>
+    </div>
+    <ol class="lineage" id="lineage-body"></ol>
   </dialog>
 
   <div class="toast" id="toast" hidden></div>

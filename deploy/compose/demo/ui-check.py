@@ -85,6 +85,23 @@ with sync_playwright() as p:
     check("Hai Phong" not in facilities and "Binh Duong" in facilities, "bob only sees Company B facilities")
     page.screenshot(path=SHOTS / "5-bob-home.png", full_page=True)
 
+    page.click("#logout")
+    expect(page.locator("#login-view")).to_be_visible(timeout=20_000)
+    login(page, "an.tran")
+    expect(page.locator("#ledger-card")).to_be_visible(timeout=15_000)
+    approve = page.locator("#pending-body button.primary")
+    if approve.count():
+        approve.first.click()
+        page.wait_for_timeout(2000)
+    check(page.locator("#entries-body tr.clickable").count() > 0, "an.tran (approver) sees recorded emissions in the ledger")
+    check(page.locator("#kpi-scope2").inner_text() not in ("–", "0"), f"Scope 2 total shown ({page.locator('#kpi-scope2').inner_text()} tCO2e)")
+    page.screenshot(path=SHOTS / "6-ledger.png", full_page=True)
+    page.locator("#entries-body tr.clickable").first.click()
+    expect(page.locator("#lineage")).to_be_visible()
+    lineage = page.locator("#lineage-body").inner_text()
+    check(".pdf" in lineage and "an.tran" in lineage, "lineage shows the source document and the approver")
+    page.screenshot(path=SHOTS / "7-lineage.png")
+
     browser.close()
 
 print(f"Screenshots in {SHOTS}")

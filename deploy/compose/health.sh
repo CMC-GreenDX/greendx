@@ -37,6 +37,8 @@ check "seaweedfs  (container healthcheck)" container_healthy seaweedfs
 check "clamav     (container healthcheck)" container_healthy clamav
 check "intake     (container healthcheck)" container_healthy document-intake
 check "intake     gateway -> /intake/health" http_ok "$GATEWAY_URL/intake/health"
+check "ledger     (container healthcheck)" container_healthy carbon-ledger
+check "ledger     gateway -> /ledger/health" http_ok "$GATEWAY_URL/ledger/health"
 check "console    gateway -> demo console" http_ok "$GATEWAY_URL/"
 
 if [ "$failed" -ne 0 ]; then
