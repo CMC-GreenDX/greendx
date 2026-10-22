@@ -195,6 +195,23 @@ services:
       nats:
         condition: service_started
 
+  carbon-ledger:
+    <<: *core
+    build: ../../apps/carbon-ledger
+    image: ecotrace/carbon-ledger:dev
+    environment:
+      DATABASE_URL: postgres://ledger_app:${LEDGER_DB_PASSWORD}@postgres:5432/ecotrace
+      DATABASE_ADMIN_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
+      JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
+      JWT_ISSUER: http://localhost:8080/realms/ecotrace
+      TENANTS_DIR: /config/tenants
+      NATS_URL: nats://nats:4222
+    volumes:
+      - ../../tenants:/config/tenants:ro
+    depends_on:
+      document-intake:
+        condition: service_healthy
+
   demo-console:
     <<: *core
     image: nginx:1.30.6-alpine
@@ -243,6 +260,8 @@ services:
       hasura:
         condition: service_started
       document-intake:
+        condition: service_started
+      carbon-ledger:
         condition: service_started
       demo-console:
         condition: service_started

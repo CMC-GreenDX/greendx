@@ -16,6 +16,10 @@ upstreams:
       read: 120
     nodes:
       "document-intake:8000": 1
+  - id: carbon-ledger
+    type: roundrobin
+    nodes:
+      "carbon-ledger:8000": 1
   - id: demo-console
     type: roundrobin
     nodes:
@@ -50,6 +54,31 @@ routes:
   - id: intake
     uri: /intake/*
     upstream_id: document-intake
+    plugins:
+      openid-connect:
+        # Bearer-only: tokens are verified locally against the realm's JWKS.
+        # The client secret is never used in this mode; the field is required by the plugin schema.
+        client_id: ecotrace-gateway
+        client_secret: unused-in-bearer-only-mode
+        discovery: http://keycloak:8080/realms/ecotrace/.well-known/openid-configuration
+        bearer_only: true
+        use_jwks: true
+        realm: ecotrace
+      limit-count:
+        count: 120
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        rejected_code: 429
+        policy: local
+
+  - id: ledger-health
+    uri: /ledger/health
+    upstream_id: carbon-ledger
+
+  - id: ledger
+    uri: /ledger/*
+    upstream_id: carbon-ledger
     plugins:
       openid-connect:
         # Bearer-only: tokens are verified locally against the realm's JWKS.

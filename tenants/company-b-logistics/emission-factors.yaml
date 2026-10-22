@@ -1,0 +1,26 @@
+# Emission factors used by Carbon Ledger. The version is stored with every emission entry,
+# so changing a value never rewrites past results.
+factors:
+  vn-grid-electricity:
+    name: Vietnam national grid electricity, 2024
+    value: 0.681
+    unit: kgCO2e/kWh
+    gas: CO2e
+    version: vn-grid-2024-study
+    status: provisional
+    source: >-
+      0.681 tCO2e/MWh for 2024, study by Hanoi University of Science and Technology with the Ministry of
+      Agriculture and Environment (Viet Nam News, April 2025). Not the official ministry announcement:
+      replace with the officially announced grid emission factor before reporting.
+
+  diesel-mobile:
+    name: Diesel oil (DO), combustion
+    value: 2.68
+    unit: kgCO2/L
+    gas: CO2
+    version: ipcc-2006-diesel-co2
+    status: official
+    source: >-
+      IPCC 2006 Guidelines, Vol. 2: default CO2 factor 74,100 kg/TJ and net calorific value 43.0 TJ/Gg for
+      gas/diesel oil, with an assumed density of 0.84 kg/L (74.1 x 43.0 x 0.84 / 1000 = 2.68 kg CO2/L).
+      CH4 and N2O are not included.

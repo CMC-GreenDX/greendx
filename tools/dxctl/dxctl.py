@@ -36,6 +36,7 @@ PACK_FILES = {
     "org.yaml": "org.schema.json",
     "document-types.yaml": "document-types.schema.json",
     "emission-sources.yaml": "emission-sources.schema.json",
+    "emission-factors.yaml": "emission-factors.schema.json",
 }
 
 
@@ -91,6 +92,8 @@ def cross_checks(path: Path, pack: dict[str, dict]) -> list[str]:
             errors.append(f"emission-sources.yaml: {source['id']}: {source['document_type']} has no field {source['quantity_field']}")
         if source.get("facility") and source["facility"] not in facilities:
             errors.append(f"emission-sources.yaml: {source['id']}: unknown facility {source['facility']}")
+        if source["factor"] not in pack["emission-factors.yaml"]["factors"]:
+            errors.append(f"emission-sources.yaml: {source['id']}: factor {source['factor']} is not in emission-factors.yaml")
     return errors
 
 
