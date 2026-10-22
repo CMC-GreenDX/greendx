@@ -74,9 +74,8 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY_URL/intake/docum
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY_URL/intake/documents" -H "Authorization: Bearer $alice" \
   -F "file=@$SAMPLES/company-a-steel/seed/documents/electricity-bill-2026-09.pdf")
 [ "$code" = 409 ] && pass "same file uploaded twice by Company A is refused as a duplicate (HTTP 409)" || fail "duplicate upload returned $code"
-code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY_URL/intake/documents" -H "Authorization: Bearer $bob" \
-  -F "file=@$SAMPLES/company-a-steel/tenant.yaml;type=application/pdf;filename=other-tenant.pdf")
-[ "$code" != 409 ] && pass "duplicate detection is per tenant (Company B is not blocked by Company A's files)" || fail "Company B blocked by Company A's file"
+dup_of=$(raw_upload "$bob" "$SAMPLES/company-a-steel/seed/documents/electricity-bill-2026-09.pdf" | jq -r '.duplicate_of // empty')
+[ "$dup_of" != "$alice_doc" ] && pass "duplicate detection is per tenant (Company B can upload a file Company A already has)" || fail "Company B blocked by Company A's document"
 
 review=$(curl -sS -X POST "$GATEWAY_URL/intake/documents/$alice_doc/review" -H "Authorization: Bearer $alice" \
   -H 'Content-Type: application/json' -d '{"values": {"consumption_kwh": "188.900"}}')

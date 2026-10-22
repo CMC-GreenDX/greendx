@@ -61,7 +61,7 @@ routes:
         use_jwks: true
         realm: ecotrace
       limit-count:
-        count: 30
+        count: 120
         time_window: 60
         key_type: var
         key: remote_addr
