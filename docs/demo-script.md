@@ -33,6 +33,7 @@ If something fails: `make logs` shows the service logs, and `make reset && make 
 | 6 | Upload the warehouse issue slip photo | A phone photo of a paper slip, in Vietnamese: the AI reads it directly, without a separate OCR step. |
 | 7 | Switch to **EN** and back | All UI text comes from translation files (Vietnamese and English). |
 | 7b | In the terminal: `make dxctl ARGS="tenant create tenants/company-c-cement"`, then log in as `chi.pham` | A new company is onboarded in seconds from four YAML files: users, roles, storage bucket, facilities. No code change, no restart. |
+| 7c | Log out, log in as `an.tran` (approver, Company A) and click **Phê duyệt** in the ledger | The reviewed bill became an activity through the event bus. The approver turns it into 128.57 tCO₂e in Scope 2. Click the figure to see its lineage: original bill, reviewer and corrections, approver, factor version and citation. |
 | 8 | Log out, log in as `bob` | Company B (logistics) has a different configuration: it accepts fuel slips but not warehouse slips, with an 85% threshold. Bob does not see any of Alice's documents or facilities. |
 | 9 | Upload Bob's fuel slip photo | Same code, different company configuration: 185.4 litres of diesel, ready for Scope 1 later. |
 
