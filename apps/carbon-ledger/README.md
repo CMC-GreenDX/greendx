@@ -24,6 +24,16 @@ Tables live in the `ledger` schema with row-level security. The service connects
 | `GET /ledger/summary?period=YYYY-MM` | Scope 1 and 2 totals, totals per source, entries and periods |
 | `GET /ledger/entries/{id}/lineage` | Where a figure comes from |
 
-Not yet: approval through a BPMN workflow, period close with a Trillian seal, and meter reconciliation.
+## Period close and seal
+
+- `POST /ledger/periods/{period}/close` (approver only) is refused while activities in the period are pending. It then:
+  1. hashes every emission entry (canonical JSON of its fields; numbers by value);
+  2. computes the period digest;
+  3. appends a leaf with the digest and the per-entry hashes to the tenant's own Trillian log through [ledger-sealer](../ledger-sealer), waits for inclusion in a signed root, stores the leaf index and root, locks the period and publishes `ledger.sealed`.
+- After closing, approvals and new activities for the period are refused.
+- `GET /ledger/periods/{period}/verify` reads the leaf back **from Trillian** (not from our database), checks its inclusion proof, recomputes the hashes from the database and names every changed, removed or added entry.
+- Live demo: `make tamper` halves one entry directly in PostgreSQL, **Kiểm tra niêm phong** turns red and names it, and `make untamper` restores it. `make seal-check` runs the whole sequence automatically.
+
+Not yet: approval through a BPMN workflow, and meter reconciliation.
 
 Test: `make ledger-check`.

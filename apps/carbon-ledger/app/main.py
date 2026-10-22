@@ -5,13 +5,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import uuid
 from contextlib import asynccontextmanager, suppress
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel
 
-from . import config, consumer, db
+from . import config, consumer, db, seal
 from .auth import User, current_user
 
 
@@ -128,3 +129,39 @@ async def lineage(entry_id: uuid.UUID, user: User = Depends(current_user)) -> di
     if found is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Emission entry not found")
     return _json(found)
+
+
+_PERIOD = r"^\d{4}-(0[1-9]|1[0-2])$"
+
+
+@app.post("/ledger/periods/{period}/close")
+async def close_period(period: str, user: User = Depends(current_user)) -> dict:
+    """Locks the period and seals the digest of its entries in the tenant's Trillian log."""
+    await _tenant(user)
+    user.require("approver")
+    if not re.match(_PERIOD, period):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Period must be YYYY-MM")
+    try:
+        result = await seal.close(user.tenant_id, period, user.username)
+    except db.PeriodClosed as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, f"Period {exc} is already closed") from exc
+    except seal.SealError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    log.info("period sealed", extra={"context": {"tenant_id": user.tenant_id, "period": period, "user": user.username,
+                                                 "leaf_index": result["leaf_index"], "digest": result["digest"]}})
+    return result
+
+
+@app.get("/ledger/periods/{period}/verify")
+async def verify_period(period: str, user: User = Depends(current_user)) -> dict:
+    """Recomputes the period from the database and checks it against the leaf sealed in Trillian."""
+    await _tenant(user)
+    try:
+        result = await seal.verify(user.tenant_id, period)
+    except seal.SealError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    if not result["valid"]:
+        log.warning("seal verification failed", extra={"context": {"tenant_id": user.tenant_id, "period": period,
+                                                                  "changed": result["changed"], "removed": result["removed"],
+                                                                  "added": result["added"]}})
+    return _json(result)

@@ -62,6 +62,11 @@ Planned for the `core` Compose profile (Phase 1) unless noted. ✅ means the lic
 | asyncpg | 0.32.0 | PyPI | Apache-2.0 ✅ | PostgreSQL driver |
 | PyYAML | 6.0.3 | PyPI | MIT ✅ | Reads tenant config packs |
 | pypdf | 6.21.1 | PyPI | BSD-3-Clause ✅ | Text layer for the rule-based fallback |
+| Go (build image of ledger-sealer) | 1.27.3 | `golang:1.27.3-alpine` | BSD-3-Clause ✅ | Builds the ledger-sealer binary only |
+| Alpine Linux (runtime image of ledger-sealer) | 3.24.3 | `alpine:3.24.3` | MIT ✅ (packages under their own OSI licenses) | Runs ledger-sealer |
+| Trillian client library | v1.8.0 | Go module `github.com/google/trillian` | Apache-2.0 ✅ | ledger-sealer appends and verifies leaves |
+| transparency-dev/merkle | v0.0.2 | Go module | Apache-2.0 ✅ | RFC 6962 leaf hashing |
+| gRPC-Go / protobuf-go | v1.83.2 / v1.36.12 | Go modules | Apache-2.0 ✅ / BSD-3-Clause ✅ | Talks to the Trillian log server |
 | nginx | 1.30.6 | `nginx:1.30.6-alpine` | BSD-2-Clause ✅ | Serves the static demo console |
 
 Transitive Python dependencies of Document Intake are resolved at image build time and are not yet locked; a lock file is a follow-up.

@@ -11,7 +11,7 @@ import asyncpg
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgres://ledger_app@postgres:5432/ecotrace")
 DATABASE_ADMIN_URL = os.environ.get("DATABASE_ADMIN_URL", "")
-_TABLES = ["ledger.activity_record", "ledger.emission_entry", "ledger.period"]
+_TABLES = ["ledger.activity_record", "ledger.emission_entry", "ledger.period", "ledger.tenant_log"]
 
 SCHEMA = """
 CREATE SCHEMA IF NOT EXISTS ledger;
@@ -69,6 +69,21 @@ CREATE TABLE IF NOT EXISTS ledger.period (
     closed_by   text,
     closed_at   timestamptz,
     PRIMARY KEY (tenant_id, period)
+);
+
+-- Seal of a closed period: digest of its entries and where the leaf sits in the tenant's Trillian log.
+ALTER TABLE ledger.period ADD COLUMN IF NOT EXISTS entry_count integer;
+ALTER TABLE ledger.period ADD COLUMN IF NOT EXISTS digest text;
+ALTER TABLE ledger.period ADD COLUMN IF NOT EXISTS tree_id text;
+ALTER TABLE ledger.period ADD COLUMN IF NOT EXISTS leaf_index bigint;
+ALTER TABLE ledger.period ADD COLUMN IF NOT EXISTS leaf_hash text;
+ALTER TABLE ledger.period ADD COLUMN IF NOT EXISTS root_hash text;
+ALTER TABLE ledger.period ADD COLUMN IF NOT EXISTS tree_size bigint;
+
+CREATE TABLE IF NOT EXISTS ledger.tenant_log (
+    tenant_id  text        PRIMARY KEY,
+    tree_id    text        NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
 );
 
 GRANT USAGE ON SCHEMA ledger TO ledger_app;
@@ -218,7 +233,8 @@ async def summary(tenant_id: str, period: str | None) -> dict:
                 LEFT JOIN intake.document d ON d.id = a.document_id
                 WHERE e.tenant_id = $1 {where.replace("period", "e.period")} ORDER BY e.created_at DESC""", *args)
         periods = await conn.fetch(
-            """SELECT p.period, coalesce(lp.status, 'open') AS status, lp.closed_by, lp.closed_at
+            """SELECT p.period, coalesce(lp.status, 'open') AS status, lp.closed_by, lp.closed_at, lp.entry_count,
+               lp.digest, lp.tree_id, lp.leaf_index, lp.root_hash, lp.tree_size
                FROM (SELECT DISTINCT period FROM ledger.activity_record WHERE tenant_id = $1) p
                LEFT JOIN ledger.period lp ON lp.tenant_id = $1 AND lp.period = p.period ORDER BY p.period DESC""",
             tenant_id)
@@ -245,3 +261,20 @@ async def lineage(tenant_id: str, entry_id: uuid.UUID) -> dict | None:
     return {"entry": dict(entry), "activity": dict(activity), "document": dict(document) if document else None,
             "fields": [dict(f) for f in fields], "corrections": [dict(c) for c in corrections],
             "period": dict(period) if period else {"period": entry["period"], "status": "open"}}
+
+
+async def tenant_tree(tenant_id: str) -> str | None:
+    async with tenant_tx(tenant_id) as conn:
+        return await conn.fetchval("SELECT tree_id FROM ledger.tenant_log WHERE tenant_id = $1", tenant_id)
+
+
+async def set_tenant_tree(tenant_id: str, tree_id: str) -> None:
+    async with tenant_tx(tenant_id) as conn:
+        await conn.execute("INSERT INTO ledger.tenant_log (tenant_id, tree_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                           tenant_id, tree_id)
+
+
+async def lock_period(conn, tenant_id: str, period: str) -> dict:
+    await conn.execute("INSERT INTO ledger.period (tenant_id, period) VALUES ($1, $2) ON CONFLICT DO NOTHING", tenant_id, period)
+    return dict(await conn.fetchrow(
+        "SELECT * FROM ledger.period WHERE tenant_id = $1 AND period = $2 FOR UPDATE", tenant_id, period))
