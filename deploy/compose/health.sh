@@ -29,6 +29,7 @@ check "keycloak   (container healthcheck)" container_healthy keycloak
 check "keycloak   realm discovery" http_ok "$KEYCLOAK_URL/realms/ecotrace/.well-known/openid-configuration"
 check "hasura     /healthz" http_ok "$HASURA_URL/healthz"
 check "apisix     gateway -> hasura" http_ok "$GATEWAY_URL/gateway/health"
+check "clamav     (container healthcheck)" container_healthy clamav
 check "intake     (container healthcheck)" container_healthy document-intake
 check "intake     gateway -> /intake/health" http_ok "$GATEWAY_URL/intake/health"
 check "console    gateway -> demo console" http_ok "$GATEWAY_URL/"
