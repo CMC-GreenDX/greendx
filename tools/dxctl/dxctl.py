@@ -117,6 +117,18 @@ class Keycloak:
             raise Failed(f"Keycloak {method} {path}: {response.status_code} {response.text[:200]}")
         return response.json() if response.content and "json" in response.headers.get("Content-Type", "") else None
 
+    def configure_portal(self, public_url: str) -> str:
+        """Points the browser client at the public URL (and keeps localhost for local development)."""
+        found = self.call("GET", "/clients", params={"clientId": "ecotrace-portal"})
+        if not found:
+            raise Failed("client ecotrace-portal not found in the realm")
+        client = found[0]
+        origins = sorted({public_url, "http://localhost:9080"})
+        client.update({"rootUrl": public_url, "baseUrl": "/", "redirectUris": [f"{o}/*" for o in origins], "webOrigins": origins,
+                       "attributes": {**client.get("attributes", {}), "post.logout.redirect.uris": "##".join(f"{o}/*" for o in origins)}})
+        self.call("PUT", f"/clients/{client['id']}", json=client)
+        return ", ".join(origins)
+
     def ensure_roles(self) -> None:
         existing = {r["name"] for r in self.call("GET", "/roles")}
         for role in ROLES:
@@ -310,9 +322,14 @@ def main() -> int:
     for verb in ("disable", "enable"):
         tenant.add_parser(verb).add_argument("tenant_id")
     tenant.add_parser("list")
+    portal = sub.add_parser("portal").add_subparsers(dest="verb", required=True)
+    portal.add_parser("configure").add_argument("--url", default=os.environ.get("PUBLIC_URL", "http://localhost:9080"))
     args = parser.parse_args()
     try:
-        if args.verb == "validate":
+        if args.noun == "portal":
+            url = args.url.rstrip("/")
+            say("portal", f"browser client allows {Keycloak().configure_portal(url)}")
+        elif args.verb == "validate":
             pack = load_pack(args.pack)
             print(f"{pack['tenant.yaml']['id']}: config pack is valid ({len(PACK_FILES)} files)")
         elif args.verb == "create":

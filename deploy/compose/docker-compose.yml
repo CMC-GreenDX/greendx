@@ -62,8 +62,9 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-      # Tokens are issued for the public URL; services inside the network reach Keycloak as keycloak:8080.
-      KC_HOSTNAME: http://localhost:8080
+      # Tokens are issued for the public URL (the gateway serves the login pages on that origin);
+      # services inside the network reach Keycloak as keycloak:8080.
+      KC_HOSTNAME: ${PUBLIC_URL:-http://localhost:9080}
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_HEALTH_ENABLED: "true"
       KC_LOG_CONSOLE_OUTPUT: json
@@ -101,7 +102,7 @@ services:
       HASURA_GRAPHQL_JWT_SECRET: >-
         {"type": "RS256",
         "jwk_url": "http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs",
-        "issuer": "http://localhost:8080/realms/ecotrace",
+        "issuer": "${PUBLIC_URL:-http://localhost:9080}/realms/ecotrace",
         "claims_map": {
         "x-hasura-allowed-roles": ["user"],
         "x-hasura-default-role": "user",
@@ -164,7 +165,7 @@ services:
       DATABASE_URL: postgres://intake_app:${INTAKE_DB_PASSWORD}@postgres:5432/ecotrace
       DATABASE_ADMIN_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
       JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
-      JWT_ISSUER: http://localhost:8080/realms/ecotrace
+      JWT_ISSUER: ${PUBLIC_URL:-http://localhost:9080}/realms/ecotrace
       TENANTS_DIR: /config/tenants
       S3_ENDPOINT: http://seaweedfs:8333
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
@@ -264,7 +265,7 @@ services:
       FLOWABLE_USER: rest-admin
       FLOWABLE_PASSWORD: ${FLOWABLE_ADMIN_PASSWORD}
       JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
-      JWT_ISSUER: http://localhost:8080/realms/ecotrace
+      JWT_ISSUER: ${PUBLIC_URL:-http://localhost:9080}/realms/ecotrace
       NATS_URL: nats://nats:4222
     depends_on:
       flowable:
@@ -280,7 +281,7 @@ services:
       DATABASE_URL: postgres://purchase_app:${PURCHASE_DB_PASSWORD}@postgres:5432/ecotrace
       DATABASE_ADMIN_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
       JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
-      JWT_ISSUER: http://localhost:8080/realms/ecotrace
+      JWT_ISSUER: ${PUBLIC_URL:-http://localhost:9080}/realms/ecotrace
       TENANTS_DIR: /config/tenants
       NATS_URL: nats://nats:4222
     volumes:
@@ -297,7 +298,7 @@ services:
       DATABASE_URL: postgres://ledger_app:${LEDGER_DB_PASSWORD}@postgres:5432/ecotrace
       DATABASE_ADMIN_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
       JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
-      JWT_ISSUER: http://localhost:8080/realms/ecotrace
+      JWT_ISSUER: ${PUBLIC_URL:-http://localhost:9080}/realms/ecotrace
       TENANTS_DIR: /config/tenants
       NATS_URL: nats://nats:4222
       SEALER_URL: http://ledger-sealer:8080
@@ -337,6 +338,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:9080}
       FLOWABLE_URL: http://flowable:8080/flowable-rest/service
       FLOWABLE_USER: rest-admin
       FLOWABLE_PASSWORD: ${FLOWABLE_ADMIN_PASSWORD}
