@@ -70,7 +70,8 @@ async def health() -> dict:
 async def activities(user: User = Depends(current_user)) -> dict:
     tenant = await _tenant(user)
     return {"activities": [_json(a) for a in await db.list_activities(user.tenant_id)],
-            "can_approve": "approver" in user.roles and not tenant.has_workflow, "workflow": tenant.has_workflow}
+            "can_approve": "approver" in user.roles and not tenant.has_workflow, "workflow": tenant.has_workflow,
+            "can_close": "approver" in user.roles}
 
 
 @app.post("/ledger/activities/{activity_id}/approve")

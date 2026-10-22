@@ -314,7 +314,7 @@ function renderSeal() {
   $('seal-detail').textContent = closed
     ? t('seal.detail', { count: info.entry_count, index: info.leaf_index, size: info.tree_size, root: (info.root_hash || '').slice(0, 16), user: info.closed_by })
     : t('seal.openHint');
-  $('seal-close').hidden = closed || !ledger.can_approve;
+  $('seal-close').hidden = closed || !ledger.can_close;
   $('seal-verify').hidden = !closed;
 }
 
