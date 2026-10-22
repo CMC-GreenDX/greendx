@@ -398,6 +398,21 @@ async function loadPurchases() {
   )) : [h('tr', {}, h('td', { colspan: 4, class: 'muted' }, t('purchase.empty')))]));
 }
 
+async function exportReport(format) {
+  const period = $('ledger-period').value;
+  try {
+    const res = await api(`/ledger/report?format=${format}${period ? `&period=${period}` : ''}`);
+    const url = URL.createObjectURL(await res.blob());
+    const link = h('a', { href: url, download: `ecotrace-${me.tenant_id}-${period || 'all'}.${format}` });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
 async function decide(id, action) {
   let body;
   if (action === 'reject') {
@@ -517,6 +532,8 @@ function wireEvents() {
   $('review-save').addEventListener('click', saveReview);
   $('ledger-period').addEventListener('change', () => { $('verify-result').hidden = true; loadLedger(); });
   $('seal-close').addEventListener('click', closePeriod);
+  $('export-xlsx').addEventListener('click', () => exportReport('xlsx'));
+  $('export-csv').addEventListener('click', () => exportReport('csv'));
   $('seal-verify').addEventListener('click', verifyPeriod);
   $('lineage-close').addEventListener('click', () => $('lineage').close());
   $('viewer-close').addEventListener('click', () => $('viewer').close());

@@ -14,7 +14,7 @@
   "ai.model": "AI: {model}",
   "ai.rules": "AI: chế độ dự phòng (luật)",
   "upload.title": "Tải chứng từ lên",
-  "upload.drop": "Kéo thả hoặc bấm để chọn file PDF / ảnh (tối đa 10 MB)",
+  "upload.drop": "Kéo thả hoặc bấm để chọn file PDF, ảnh hoặc hoá đơn điện tử XML (tối đa 10 MB)",
   "samples.title": "Tài liệu mẫu",
   "samples.empty": "Chưa có tài liệu mẫu cho công ty này.",
   "pipeline.title": "Quy trình xử lý",
@@ -128,5 +128,7 @@
   "purchase.empty": "Chưa có đề nghị mua hàng nào.",
   "purchase.status.pending": "Chờ duyệt",
   "purchase.status.approved": "Đã duyệt",
-  "purchase.status.rejected": "Bị từ chối"
+  "purchase.status.rejected": "Bị từ chối",
+  "ledger.exportXlsx": "Xuất Excel",
+  "ledger.exportCsv": "CSV"
 }
