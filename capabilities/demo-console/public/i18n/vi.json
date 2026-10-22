@@ -47,5 +47,14 @@
   "facilities.title": "Cơ sở của công ty",
   "facilities.body": "Đọc qua GraphQL (Hasura) sau gateway; mỗi công ty chỉ thấy dữ liệu của mình.",
   "error.upload": "Tải lên thất bại: {message}",
-  "error.session": "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
+  "error.session": "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.",
+  "status.reviewed": "Đã duyệt",
+  "review.start": "Duyệt / sửa",
+  "review.save": "Lưu và xác nhận",
+  "review.cancel": "Huỷ",
+  "review.saved": "Đã lưu. Tài liệu được đánh dấu là đã duyệt.",
+  "review.by": "Đã duyệt bởi {user} lúc {time}",
+  "review.history": "Lịch sử chỉnh sửa",
+  "duplicate.found": "Tài liệu này đã được tải lên trước đó ({file}, bởi {user} lúc {time}). Không tạo bản trùng để tránh tính phát thải hai lần.",
+  "error.review": "Không lưu được: {message}"
 }

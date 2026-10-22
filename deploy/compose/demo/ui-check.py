@@ -52,6 +52,16 @@ with sync_playwright() as p:
     check("188" in page.locator("#fields-body").inner_text(), "188,800 kWh shown in the fields table")
     page.screenshot(path=SHOTS / "2-alice-result.png", full_page=True)
 
+    if page.locator("#review-start").is_visible():
+        page.click("#review-start")
+        page.locator(".field-input[data-field=consumption_kwh]").fill("188800")
+        page.locator(".field-input[data-field=meter_id]").fill("14567891")
+        page.click("#review-save")
+        expect(page.locator("#review-history")).to_be_visible(timeout=10_000)
+        page.screenshot(path=SHOTS / "2b-alice-reviewed.png", full_page=True)
+    check(page.locator("#result-reviewed").is_visible() or page.locator("#review-start").is_visible(),
+          "document can be reviewed or shows who reviewed it")
+
     page.click("#view-original")
     expect(page.locator("#viewer")).to_be_visible()
     page.wait_for_timeout(1500)

@@ -64,6 +64,11 @@
           <div class="result-actions">
             <span class="badge" id="result-status"></span>
             <button class="secondary" id="view-original" data-i18n="action.viewOriginal"></button>
+            <button class="primary" id="review-start" data-i18n="review.start" hidden></button>
+            <span id="review-actions" hidden>
+              <button class="primary" id="review-save" data-i18n="review.save"></button>
+              <button class="link" id="review-cancel" data-i18n="review.cancel"></button>
+            </span>
           </div>
         </div>
         <table class="fields">
@@ -76,7 +81,12 @@
           </thead>
           <tbody id="fields-body"></tbody>
         </table>
+        <p class="muted" id="result-reviewed" hidden></p>
         <p class="notes" id="result-notes" hidden></p>
+        <div id="review-history" hidden>
+          <h3 data-i18n="review.history"></h3>
+          <ul class="history" id="review-history-list"></ul>
+        </div>
       </article>
 
       <div class="grid">
