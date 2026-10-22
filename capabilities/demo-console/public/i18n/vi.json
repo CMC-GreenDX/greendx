@@ -20,6 +20,7 @@
   "pipeline.title": "Quy trình xử lý",
   "pipeline.idle": "Tải một tài liệu lên để xem từng bước.",
   "step.gateway": "Gateway xác thực token (JWT) và mã công ty",
+  "step.scan": "Quét mã độc (ClamAV) trước khi lưu",
   "step.store": "Lưu file gốc vào kho riêng của công ty",
   "step.classify": "AI phân loại tài liệu theo cấu hình công ty",
   "step.extract": "AI trích xuất các trường kèm độ tin cậy",

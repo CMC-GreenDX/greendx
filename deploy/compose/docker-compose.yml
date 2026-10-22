@@ -91,6 +91,19 @@ services:
       keycloak:
         condition: service_healthy
 
+  clamav:
+    <<: *core
+    image: clamav/clamav:1.5.4
+    volumes:
+      # Signature database survives restarts, so only the first start downloads it (a few minutes).
+      - clamav-db:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+
   document-intake:
     <<: *core
     build: ../../capabilities/document-intake
@@ -101,6 +114,8 @@ services:
       JWT_ISSUER: http://localhost:8080/realms/ecotrace
       TENANTS_DIR: /config/tenants
       STORAGE_DIR: /data/documents
+      CLAMD_HOST: clamav
+      CLAMD_PORT: "3310"
       # AI provider: gemini (default) or claude. Keys come from the shell (for example a Codespaces secret)
       # and are never written to a file in the repository.
       AI_PROVIDER: ${AI_PROVIDER:-gemini}
@@ -117,6 +132,8 @@ services:
       postgres:
         condition: service_healthy
       keycloak:
+        condition: service_healthy
+      clamav:
         condition: service_healthy
 
   demo-console:
@@ -158,3 +175,4 @@ networks:
 volumes:
   postgres-data:
   intake-documents:
+  clamav-db:
