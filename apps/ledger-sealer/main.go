@@ -153,13 +153,20 @@ func (s *server) readLeaf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := leaves.Leaves[0].LeafValue
-	// Proves the leaf is part of the log the signer committed to: it cannot have been rewritten.
-	included := c.VerifyInclusion(ctx, data) == nil
+	leafHash := rfc6962.DefaultHasher.HashLeaf(data)
 	root := c.GetRoot()
+	// Proves the leaf is part of the log the signer committed to: it cannot have been rewritten.
+	included := false
+	proof, err := s.log.GetInclusionProofByHash(ctx, &trillian.GetInclusionProofByHashRequest{
+		LogId: id, LeafHash: leafHash, TreeSize: int64(root.TreeSize), OrderBySequence: true,
+	})
+	if err == nil && len(proof.Proof) > 0 {
+		included = c.VerifyInclusionByHash(root, leafHash, proof.Proof[0]) == nil
+	}
 	writeJSON(w, 200, map[string]any{
 		"tree_id":   strconv.FormatInt(id, 10),
 		"data":      base64.StdEncoding.EncodeToString(data),
-		"leaf_hash": hex.EncodeToString(rfc6962.DefaultHasher.HashLeaf(data)),
+		"leaf_hash": hex.EncodeToString(leafHash),
 		"included":  included,
 		"tree_size": root.TreeSize,
 		"root_hash": hex.EncodeToString(root.RootHash),
