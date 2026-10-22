@@ -91,6 +91,34 @@ services:
       keycloak:
         condition: service_healthy
 
+  nats:
+    <<: *core
+    image: nats:2.15.1
+    command: ["--jetstream", "--store_dir", "/data", "--http_port", "8222", "--server_name", "ecotrace-nats"]
+    volumes:
+      - nats-data:/data
+
+  seaweedfs:
+    <<: *core
+    image: chrislusf/seaweedfs:4.48
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+    # Writes the S3 identity from the environment, then runs master, volume, filer and S3 gateway in one process.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        printf '{"identities":[{"name":"ecotrace","credentials":[{"accessKey":"%s","secretKey":"%s"}],
+        "actions":["Admin","Read","Write","List","Tagging"]}]}' "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" > /tmp/s3.json &&
+        exec weed server -dir=/data -s3 -s3.config=/tmp/s3.json -volume.max=0 -master.volumeSizeLimitMB=256
+    volumes:
+      - seaweedfs-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9333/cluster/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
   clamav:
     <<: *core
     image: clamav/clamav:1.5.4
@@ -113,7 +141,10 @@ services:
       JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
       JWT_ISSUER: http://localhost:8080/realms/ecotrace
       TENANTS_DIR: /config/tenants
-      STORAGE_DIR: /data/documents
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      NATS_URL: nats://nats:4222
       CLAMD_HOST: clamav
       CLAMD_PORT: "3310"
       # AI provider: gemini (default) or claude. Keys come from the shell (for example a Codespaces secret)
@@ -127,7 +158,6 @@ services:
       CLAUDE_EFFORT: ${CLAUDE_EFFORT:-low}
     volumes:
       - ../../tenants:/config/tenants:ro
-      - intake-documents:/data/documents
     depends_on:
       postgres:
         condition: service_healthy
@@ -135,6 +165,10 @@ services:
         condition: service_healthy
       clamav:
         condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      nats:
+        condition: service_started
 
   demo-console:
     <<: *core
@@ -174,5 +208,6 @@ networks:
 
 volumes:
   postgres-data:
-  intake-documents:
+  nats-data:
+  seaweedfs-data:
   clamav-db:
