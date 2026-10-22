@@ -16,6 +16,7 @@ import os
 import urllib.request
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from . import db, events
 
@@ -39,8 +40,17 @@ def _sealer(method: str, path: str, body: dict | None = None) -> dict:
         raise SealError(f"ledger-sealer {method} {path}: {exc}") from exc
 
 
+def _canonical(value) -> str | None:
+    """Same value, same text: 128572.800 and 128572.8000 must hash identically."""
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return format(value.normalize(), "f")
+    return str(value)
+
+
 def entry_hash(entry: dict) -> str:
-    canonical = {k: str(entry[k]) if entry[k] is not None else None for k in _HASHED}
+    canonical = {k: _canonical(entry[k]) for k in _HASHED}
     return hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
