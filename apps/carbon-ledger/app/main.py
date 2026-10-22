@@ -68,15 +68,17 @@ async def health() -> dict:
 
 @app.get("/ledger/activities")
 async def activities(user: User = Depends(current_user)) -> dict:
-    await _tenant(user)
+    tenant = await _tenant(user)
     return {"activities": [_json(a) for a in await db.list_activities(user.tenant_id)],
-            "can_approve": "approver" in user.roles}
+            "can_approve": "approver" in user.roles and not tenant.has_workflow, "workflow": tenant.has_workflow}
 
 
 @app.post("/ledger/activities/{activity_id}/approve")
 async def approve(activity_id: uuid.UUID, user: User = Depends(current_user)) -> dict:
     tenant = await _tenant(user)
     user.require("approver")
+    if tenant.has_workflow:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Approval runs through the tenant's workflow (My approvals)")
     activity = await db.get_activity(user.tenant_id, activity_id)
     if activity is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Activity not found")

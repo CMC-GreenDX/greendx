@@ -293,7 +293,7 @@ function renderLedger() {
     h('td', {}, a.status === 'pending_approval' && ledger.can_approve
       ? [h('button', { class: 'primary small', onclick: () => decide(a.id, 'approve') }, t('ledger.approve')), ' ',
         h('button', { class: 'link', onclick: () => decide(a.id, 'reject') }, t('ledger.reject'))]
-      : a.status === 'pending_approval' ? h('small', { class: 'muted' }, t('ledger.waitingApprover')) : (a.reject_reason || '')),
+      : a.status === 'pending_approval' ? h('small', { class: 'muted' }, t(ledger.workflow ? 'ledger.inWorkflow' : 'ledger.waitingApprover')) : (a.reject_reason || '')),
   )) : [h('tr', {}, h('td', { colspan: 5, class: 'muted' }, t('ledger.nonePending')))]));
 
   $('entries-body').replaceChildren(...(summary.entries.length ? summary.entries.map((e) => h('tr', { class: 'clickable', onclick: () => showLineage(e.id) },
@@ -348,6 +348,56 @@ async function verifyPeriod() {
   box.hidden = false;
 }
 
+// --- Workflow inbox and purchase approval -------------------------------------------------------
+
+async function loadInbox() {
+  let tasks = [];
+  try { tasks = (await (await api('/workflow/tasks')).json()).tasks; } catch { /* workflow not reachable */ }
+  const time = new Intl.DateTimeFormat(lang === 'vi' ? 'vi-VN' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' });
+  $('inbox-list').replaceChildren(...(tasks.length ? tasks.map((task) => h('li', {},
+    h('div', {},
+      h('strong', {}, task.name),
+      h('small', {}, `${t(`inbox.process.${task.process_key}`)} · ${task.summary || task.title || ''}`),
+      h('small', {}, `${time.format(new Date(task.created))}${task.decisions.length ? ` · ${task.decisions.map((d) => `${d.step}: ${d.by} ✓`).join(' · ')}` : ''}`)),
+    h('div', { class: 'result-actions' },
+      task.document_id ? h('button', { class: 'link', onclick: () => showDocument(task.document_id) }, t('inbox.open')) : '',
+      h('button', { class: 'primary small', onclick: () => completeTask(task, true) }, t('ledger.approve')),
+      h('button', { class: 'link', onclick: () => completeTask(task, false) }, t('ledger.reject'))),
+  )) : [h('li', { class: 'muted' }, t('inbox.empty'))]));
+}
+
+async function completeTask(task, approved) {
+  let comment = '';
+  if (!approved) {
+    comment = prompt(t('ledger.rejectReason')) || '';
+    if (!comment) return;
+  }
+  try {
+    const r = await (await api(`/workflow/tasks/${task.id}/complete`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approved, comment }),
+    })).json();
+    toast(r.process_finished ? t('inbox.finished') : t('inbox.nextStep'));
+  } catch (err) {
+    toast(err.message);
+  }
+  loadInbox();
+  setTimeout(() => { loadLedger(); loadPurchases(); }, 1500);
+}
+
+async function loadPurchases() {
+  let requests = null;
+  try { requests = (await (await api('/purchase/requests')).json()).requests; } catch { /* module disabled */ }
+  $('purchase-card').hidden = !requests;
+  if (!requests) return;
+  const vnd = new Intl.NumberFormat(lang === 'vi' ? 'vi-VN' : 'en-US');
+  $('purchase-body').replaceChildren(...(requests.length ? requests.map((r) => h('tr', {},
+    h('td', {}, r.filename || r.invoice_number || r.document_id),
+    h('td', {}, r.supplier || '—'),
+    h('td', {}, r.total_vnd ? `${vnd.format(Number(r.total_vnd))} VND` : '—'),
+    h('td', {}, h('span', { class: `badge badge-${r.status}` }, t(`purchase.status.${r.status}`)), r.decided_by ? h('small', { class: 'muted' }, ` ${r.decided_by}`) : ''),
+  )) : [h('tr', {}, h('td', { colspan: 4, class: 'muted' }, t('purchase.empty')))]));
+}
+
 async function decide(id, action) {
   let body;
   if (action === 'reject') {
@@ -397,7 +447,7 @@ async function upload(file) {
     renderPipeline(current.pipeline);
     renderResult();
     renderDocuments();
-    setTimeout(loadLedger, 2500); // the ledger consumes the event asynchronously
+    setTimeout(() => { loadLedger(); loadInbox(); loadPurchases(); }, 2500); // apps consume the events asynchronously
   } catch (err) {
     renderPipeline(null);
     if (err.status === 409 && err.body?.duplicate_of) {
@@ -421,7 +471,7 @@ async function saveReview() {
     renderResult();
     renderDocuments();
     toast(t('review.saved'));
-    setTimeout(loadLedger, 2500);
+    setTimeout(() => { loadLedger(); loadInbox(); loadPurchases(); }, 2500);
   } catch (err) {
     toast(t('error.review', { message: err.message }));
   }
@@ -493,6 +543,8 @@ async function start() {
   renderAll();
   renderFacilities().catch(() => {});
   loadLedger();
+  loadInbox();
+  loadPurchases();
 }
 
 start();

@@ -10,7 +10,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -58,6 +58,9 @@ onboarding-check: ## Brief acceptance test: onboard company-c-cement from config
 
 ledger-check: ## Check Carbon Ledger: event -> activity -> approval -> emission entry -> lineage
 	@bash deploy/compose/demo/ledger-check.sh
+
+workflow-check: ## Phase 4: different approval flows for A and B, purchase invoices go to Purchase Approval
+	@bash deploy/compose/demo/workflow-check.sh
 
 seal-check: ## Demo step 4: close and seal a period, tamper with a row, verification fails, restore
 	@bash deploy/compose/demo/seal-check.sh

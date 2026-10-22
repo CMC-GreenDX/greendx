@@ -20,9 +20,11 @@ as_db_owner() { # simulates someone with direct database access, bypassing every
 
 approver=$(token_for an.tran); alice=$(token_for alice)
 
+. "$(dirname "$0")/lib.sh"
 for id in $(api "$approver" /ledger/activities | jq -r --arg p "$PERIOD" '.activities[] | select(.period == $p and .status == "pending_approval") | .id'); do
-  api "$approver" "/ledger/activities/$id/approve" -X POST >/dev/null
+  complete_task "$approver" "$id" true >/dev/null
 done
+sleep 3
 
 status=$(api "$alice" /ledger/summary | jq -r --arg p "$PERIOD" '.periods[] | select(.period == $p) | .status')
 if [ "$status" != closed ]; then
