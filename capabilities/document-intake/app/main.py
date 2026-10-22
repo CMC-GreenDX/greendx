@@ -212,6 +212,8 @@ async def get_file(document_id: uuid.UUID, user: User = Depends(current_user)) -
     if found is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
     doc = found[0]
+    if not doc["storage_path"].startswith("s3://"):  # uploaded before object storage existed
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Original file is no longer available")
     content = await storage.get(user.tenant_id, doc["storage_path"])
     return Response(content, media_type=doc["content_type"],
                     headers={"Content-Disposition": f'inline; filename="{doc["id"]}"'})
