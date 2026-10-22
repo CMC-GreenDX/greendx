@@ -130,5 +130,13 @@
   "purchase.status.approved": "Đã duyệt",
   "purchase.status.rejected": "Bị từ chối",
   "ledger.exportXlsx": "Xuất Excel",
-  "ledger.exportCsv": "CSV"
+  "ledger.exportCsv": "CSV",
+  "dash.title": "Bảng điều khiển phát thải",
+  "dash.body": "Cập nhật tức thì mỗi khi có số liệu được phê duyệt hoặc kỳ được niêm phong, không cần tải lại trang.",
+  "dash.byPeriod": "Phát thải theo kỳ (tCO₂e)",
+  "dash.byFacility": "Theo cơ sở (tCO₂e)",
+  "dash.table": "Xem dạng bảng",
+  "dash.live": "Trực tiếp",
+  "dash.offline": "Đang kết nối…",
+  "dash.updated": "Số liệu vừa được cập nhật."
 }

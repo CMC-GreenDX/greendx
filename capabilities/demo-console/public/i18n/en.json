@@ -130,5 +130,13 @@
   "purchase.status.approved": "Approved",
   "purchase.status.rejected": "Rejected",
   "ledger.exportXlsx": "Export Excel",
-  "ledger.exportCsv": "CSV"
+  "ledger.exportCsv": "CSV",
+  "dash.title": "Emissions dashboard",
+  "dash.body": "Updates instantly whenever figures are approved or a period is sealed, without reloading the page.",
+  "dash.byPeriod": "Emissions by period (tCO₂e)",
+  "dash.byFacility": "By facility (tCO₂e)",
+  "dash.table": "Show as table",
+  "dash.live": "Live",
+  "dash.offline": "Connecting…",
+  "dash.updated": "Figures just updated."
 }

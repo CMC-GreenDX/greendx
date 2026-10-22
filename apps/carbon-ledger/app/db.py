@@ -297,3 +297,18 @@ async def report_data(tenant_id: str, period: str | None) -> dict:
     factors = {(e["factor_key"], e["factor_version"]): e for e in data}
     return {"tenant_name": name or tenant_id, "entries": data, "periods": [dict(p) for p in periods],
             "factors": list(factors.values())}
+
+
+async def trend(tenant_id: str) -> dict:
+    """Emissions by period and scope, and by facility, for the dashboard."""
+    async with tenant_tx(tenant_id) as conn:
+        by_period = await conn.fetch(
+            "SELECT period, scope, sum(co2e_kg) AS co2e_kg FROM ledger.emission_entry WHERE tenant_id = $1 "
+            "GROUP BY period, scope ORDER BY period", tenant_id)
+        by_facility = await conn.fetch(
+            """SELECT coalesce(f.name, e.facility_code, '-') AS facility, sum(e.co2e_kg) AS co2e_kg
+               FROM ledger.emission_entry e LEFT JOIN core.facility f ON f.tenant_id = e.tenant_id AND f.code = e.facility_code
+               WHERE e.tenant_id = $1 GROUP BY 1 ORDER BY 2 DESC""", tenant_id)
+        pending = await conn.fetchval(
+            "SELECT count(*) FROM ledger.activity_record WHERE tenant_id = $1 AND status = 'pending_approval'", tenant_id)
+    return {"by_period": [dict(r) for r in by_period], "by_facility": [dict(r) for r in by_facility], "pending": pending}

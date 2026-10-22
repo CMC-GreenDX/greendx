@@ -348,6 +348,116 @@ async function verifyPeriod() {
   box.hidden = false;
 }
 
+// --- Dashboard (real-time via Server-Sent Events) -------------------------------------------------
+
+const SVG = 'http://www.w3.org/2000/svg';
+const s = (tag, attrs = {}, text) => {
+  const el = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (text !== undefined) el.textContent = text;
+  return el;
+};
+const niceMax = (v) => { if (v <= 0) return 1; const p = 10 ** Math.floor(Math.log10(v)); return Math.ceil(v / p) * p; };
+// A bar with only its data end rounded (4px), anchored square on the baseline.
+const roundedTop = (x, y, w, h, r) => (h <= 0 ? '' : `M${x},${y + h}V${y + Math.min(r, h)}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + Math.min(r, h)}V${y + h}Z`);
+
+function tooltip(evt, lines) {
+  const tip = $('chart-tooltip');
+  if (!lines) { tip.hidden = true; return; }
+  tip.replaceChildren(...lines.map((l, i) => (i === 0 ? h('strong', {}, l) : h('div', {}, l))));
+  tip.style.left = `${evt.clientX + 14}px`;
+  tip.style.top = `${evt.clientY + 14}px`;
+  tip.hidden = false;
+}
+
+async function loadDashboard() {
+  let trend;
+  try { trend = await (await api('/ledger/trend')).json(); } catch { $('dashboard-card').hidden = true; return; }
+  $('dashboard-card').hidden = false;
+  const periods = [...new Set(trend.by_period.map((r) => r.period))].sort();
+  const rows = periods.map((p) => {
+    const kg = (scope) => trend.by_period.filter((r) => r.period === p && r.scope === scope).reduce((a, r) => a + r.co2e_kg, 0);
+    return { period: p, s1: kg(1) / 1000, s2: kg(2) / 1000 };
+  });
+  renderPeriodChart(rows);
+  renderFacilityChart(trend.by_facility);
+}
+
+function renderPeriodChart(rows) {
+  const W = 640, H = 240, m = { t: 22, r: 12, b: 28, l: 52 };
+  const max = niceMax(Math.max(0, ...rows.map((r) => r.s1 + r.s2)));
+  const y = (v) => m.t + (H - m.t - m.b) * (1 - v / max);
+  const band = (W - m.l - m.r) / Math.max(rows.length, 1);
+  const bw = Math.min(44, band * 0.5);
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': t('dash.byPeriod') });
+  for (let i = 0; i <= 4; i++) {
+    const v = (max / 4) * i;
+    svg.append(s('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: 'var(--grid)', 'stroke-width': 1 }));
+    svg.append(s('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, tonnes(v * 1000)));
+  }
+  if (!rows.length) svg.append(s('text', { x: W / 2, y: H / 2, 'text-anchor': 'middle' }, t('ledger.noEntries')));
+  rows.forEach((r, i) => {
+    const x = m.l + band * i + (band - bw) / 2;
+    const segs = [[1, r.s1, 'var(--series-1)'], [2, r.s2, 'var(--series-2)']].filter(([, v]) => v > 0);
+    let base = 0;
+    segs.forEach(([scope, v, color], k) => {
+      const top = y(base + v), bottom = y(base);
+      const gap = k > 0 ? 2 : 0; // 2px surface gap between stacked segments
+      const hgt = Math.max(bottom - top - gap, 1);
+      const isTop = k === segs.length - 1;
+      const shape = isTop ? s('path', { d: roundedTop(x, top, bw, hgt, 4), fill: color, class: 'bar' })
+        : s('rect', { x, y: top, width: bw, height: hgt, fill: color, class: 'bar' });
+      const lines = [r.period, `${t(`ledger.scope${scope}`)}: ${tonnes(v * 1000)} tCO₂e`];
+      shape.addEventListener('mousemove', (e) => tooltip(e, lines));
+      shape.addEventListener('mouseleave', () => tooltip(null));
+      svg.append(shape);
+      base += v;
+    });
+    svg.append(s('text', { x: x + bw / 2, y: y(base) - 6, 'text-anchor': 'middle', class: 'total' }, tonnes((r.s1 + r.s2) * 1000)));
+    svg.append(s('text', { x: x + bw / 2, y: H - m.b + 16, 'text-anchor': 'middle' }, r.period));
+  });
+  $('chart-period').replaceChildren(svg);
+  $('chart-period-table').replaceChildren(
+    h('thead', {}, h('tr', {}, h('th', {}, t('ledger.period')), h('th', {}, t('ledger.scope1')), h('th', {}, t('ledger.scope2')), h('th', {}, t('ledger.total')))),
+    h('tbody', {}, ...rows.map((r) => h('tr', {}, h('td', {}, r.period), h('td', {}, tonnes(r.s1 * 1000)), h('td', {}, tonnes(r.s2 * 1000)), h('td', {}, tonnes((r.s1 + r.s2) * 1000))))));
+}
+
+function renderFacilityChart(facilities) {
+  const max = Math.max(1, ...facilities.map((f) => f.co2e_kg));
+  $('chart-facility').replaceChildren(...(facilities.length ? facilities.map((f) => h('div', { class: 'hbar' },
+    h('span', {}, f.facility), h('strong', {}, `${tonnes(f.co2e_kg)} tCO₂e`),
+    h('div', { class: 'track' }, h('div', { class: 'fill', style: `width:${(100 * f.co2e_kg) / max}%` })))) : [h('p', { class: 'muted' }, t('ledger.noEntries'))]));
+}
+
+async function connectLive() {
+  // EventSource cannot send the Authorization header, so the SSE stream is read with fetch.
+  const setLive = (on) => { $('live-badge').classList.toggle('on', on); $('live-text').textContent = t(on ? 'dash.live' : 'dash.offline'); };
+  setLive(false);
+  try {
+    const res = await fetch('/ledger/stream', { headers: { Authorization: `Bearer ${await accessToken()}` } });
+    if (!res.ok) throw new Error(res.status);
+    setLive(true);
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      let cut;
+      while ((cut = buffer.indexOf('\n\n')) >= 0) {
+        const chunk = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
+        if (chunk.includes('event: ledger')) {
+          toast(t('dash.updated'));
+          loadDashboard(); loadLedger(); loadInbox();
+        }
+      }
+    }
+  } catch { /* fall through to reconnect */ }
+  setLive(false);
+  setTimeout(connectLive, 3000);
+}
+
 // --- Workflow inbox and purchase approval -------------------------------------------------------
 
 async function loadInbox() {
@@ -562,6 +672,8 @@ async function start() {
   loadLedger();
   loadInbox();
   loadPurchases();
+  loadDashboard();
+  connectLive();
 }
 
 start();

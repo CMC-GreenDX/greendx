@@ -18,7 +18,7 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from . import db, events
+from . import db, events, live
 
 SEALER_URL = os.environ.get("SEALER_URL", "http://ledger-sealer:8080")
 _HASHED = ("id", "tenant_id", "activity_id", "period", "scope", "facility_code", "source_id", "quantity", "unit",
@@ -96,6 +96,7 @@ async def close(tenant_id: str, period: str, user: str) -> dict:
             "leaf_index": sealed["leaf_index"], "leaf_hash": sealed["leaf_hash"], "root_hash": sealed["root_hash"],
             "tree_size": sealed["tree_size"], "closed_by": user, "closed_at": closed_at}
     await events.publish(tenant_id, "ledger.sealed", period, seal, uuid.uuid4().hex)
+    live.notify(tenant_id, "sealed", period=period)
     return seal
 
 
