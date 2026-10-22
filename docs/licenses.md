@@ -61,6 +61,7 @@ Planned for the `core` Compose profile (Phase 1) unless noted. ✅ means the lic
 | cryptography | 50.0.2 | PyPI | Apache-2.0 OR BSD-3-Clause ✅ | RS256 signature verification |
 | asyncpg | 0.32.0 | PyPI | Apache-2.0 ✅ | PostgreSQL driver |
 | PyYAML | 6.0.3 | PyPI | MIT ✅ | Reads tenant config packs |
+| openpyxl | 3.1.5 | PyPI | MIT ✅ | Carbon Ledger writes the XLSX inventory report |
 | pypdf | 6.21.1 | PyPI | BSD-3-Clause ✅ | Text layer for the rule-based fallback |
 | Go (build image of ledger-sealer) | 1.27.3 | `golang:1.27.3-alpine` | BSD-3-Clause ✅ | Builds the ledger-sealer binary only |
 | Alpine Linux (runtime image of ledger-sealer) | 3.24.3 | `alpine:3.24.3` | MIT ✅ (packages under their own OSI licenses) | Runs ledger-sealer |
