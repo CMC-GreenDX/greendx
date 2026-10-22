@@ -14,6 +14,7 @@ import re
 import uuid
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 
 import asyncpg
@@ -116,7 +117,7 @@ async def on_document(js, envelope: dict, tenant_id: str) -> str:
             "INSERT INTO purchase.request (id, tenant_id, document_id, invoice_number, supplier, total_vnd, status) "
             "VALUES ($1, $2, $3, $4, $5, $6, 'pending')", request_id, tenant_id, uuid.UUID(data["document_id"]),
             fields.get("invoice_number"), fields.get("supplier_name"),
-            float(fields["total_amount_vnd"]) if fields.get("total_amount_vnd") else None)
+            Decimal(fields["total_amount_vnd"]) if fields.get("total_amount_vnd") else None)
         await tr.commit()
     except Exception:
         await tr.rollback()
@@ -218,4 +219,5 @@ async def requests_list(user: User = Depends(current_user)) -> dict:
     finally:
         await tr.rollback()
         await pool.release(conn)
-    return {"requests": [json.loads(json.dumps(dict(r), default=str)) for r in rows]}
+    plain = lambda v: format(v.normalize(), "f") if isinstance(v, Decimal) else str(v)  # noqa: E731
+    return {"requests": [json.loads(json.dumps(dict(r), default=plain)) for r in rows]}
