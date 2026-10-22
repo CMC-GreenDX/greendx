@@ -141,3 +141,13 @@ dialog::backdrop { background: rgba(10, 20, 15, 0.5); }
 .verify-result.ok { background: var(--accent-soft); color: var(--accent); }
 .verify-result.bad { background: var(--bad-soft); color: var(--bad); }
 .verify-result ul { margin: 6px 0 0; padding-left: 18px; }
+
+.tasks { list-style: none; margin: 0; padding: 0; }
+.tasks li { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.tasks li:last-child { border-bottom: none; }
+.tasks small { display: block; color: var(--muted); }
+.tasks .done { color: var(--accent); font-size: 0.85rem; }
+.badge-pending { background: var(--warn-soft); color: var(--warn); }
+
+/* Elements marked hidden stay hidden even when a class sets display. */
+[hidden] { display: none !important; }

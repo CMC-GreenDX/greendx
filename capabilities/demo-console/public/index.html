@@ -89,6 +89,12 @@
         </div>
       </article>
 
+      <article class="card" id="inbox-card">
+        <h2 data-i18n="inbox.title"></h2>
+        <p class="muted" data-i18n="inbox.body"></p>
+        <ul class="tasks" id="inbox-list"></ul>
+      </article>
+
       <article class="card" id="ledger-card" hidden>
         <div class="result-head">
           <div>
@@ -137,6 +143,22 @@
             </tr>
           </thead>
           <tbody id="entries-body"></tbody>
+        </table>
+      </article>
+
+      <article class="card" id="purchase-card" hidden>
+        <h2 data-i18n="purchase.title"></h2>
+        <p class="muted" data-i18n="purchase.body"></p>
+        <table class="list">
+          <thead>
+            <tr>
+              <th data-i18n="ledger.document"></th>
+              <th data-i18n="purchase.supplier"></th>
+              <th data-i18n="purchase.total"></th>
+              <th data-i18n="documents.status"></th>
+            </tr>
+          </thead>
+          <tbody id="purchase-body"></tbody>
         </table>
       </article>
 

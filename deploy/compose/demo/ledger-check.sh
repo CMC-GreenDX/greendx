@@ -40,8 +40,14 @@ activity_id=$(jq -r .id <<<"$activity")
 if [ "$(jq -r .status <<<"$activity")" = pending_approval ]; then
   code=$(api "$alice" "/ledger/activities/$activity_id/approve" -X POST -o /dev/null -w '%{http_code}')
   [ "$code" = 403 ] && pass "alice (uploader, reviewer) cannot approve (HTTP 403)" || fail "alice approve returned $code"
-  result=$(api "$approver" "/ledger/activities/$activity_id/approve" -X POST)
-  echo "     approved by an.tran: $(jq -c . <<<"$result")"
+  code=$(api "$approver" "/ledger/activities/$activity_id/approve" -X POST -o /dev/null -w '%{http_code}')
+  [ "$code" = 409 ] && pass "direct approval is refused: Company A approves through its BPMN workflow (HTTP 409)" || fail "direct approve returned $code"
+  . "$(dirname "$0")/lib.sh"
+  complete_task "$approver" "$activity_id" true >/dev/null && echo "     approved by an.tran in My approvals"
+  for _ in $(seq 1 15); do
+    [ "$(api "$alice" /ledger/activities | jq -r --arg a "$activity_id" '.activities[] | select(.id == $a) | .status')" = approved ] && break
+    sleep 1
+  done
 fi
 summary=$(api "$alice" "/ledger/summary?period=2026-09")
 entry_id=$(api "$alice" /ledger/activities | jq -r --arg a "$activity_id" '.activities[] | select(.id == $a) | .entry_id')

@@ -139,16 +139,17 @@ async def tenant_active(tenant_id: str) -> bool:
         return await conn.fetchval("SELECT status FROM core.tenant WHERE id = $1", tenant_id) == "active"
 
 
-async def upsert_activity(tenant_id: str, activity: dict) -> str:
-    """Creates or refreshes the activity of a document. Approved activities are never changed here."""
+async def upsert_activity(tenant_id: str, activity: dict) -> tuple[str, str | None]:
+    """Creates or refreshes the activity of a document. Approved activities are never changed here.
+    Returns the outcome and the id of the activity that now waits for approval (None if nothing to approve)."""
     async with tenant_tx(tenant_id) as conn:
         existing = await conn.fetchrow(
             "SELECT id, status FROM ledger.activity_record WHERE tenant_id = $1 AND document_id = $2 FOR UPDATE",
             tenant_id, activity["document_id"])
         if existing and existing["status"] == "approved":
-            return "unchanged (already approved)"
+            return "unchanged (already approved)", None
         if not await _period_open(conn, tenant_id, activity["period"]):
-            return f"ignored (period {activity['period']} is closed)"
+            return f"ignored (period {activity['period']} is closed)", None
         if existing:
             await conn.execute(
                 """UPDATE ledger.activity_record SET source_id = $3, source_name = $4, facility_code = $5, scope = $6,
@@ -157,15 +158,16 @@ async def upsert_activity(tenant_id: str, activity: dict) -> str:
                    WHERE tenant_id = $1 AND id = $2""",
                 tenant_id, existing["id"], activity["source_id"], activity["source_name"], activity["facility_code"],
                 activity["scope"], activity["quantity"], activity["unit"], activity["period"], activity["origin_event"])
-            return "updated"
+            return "updated", str(existing["id"])
+        new_id = uuid.uuid4()
         await conn.execute(
             """INSERT INTO ledger.activity_record (id, tenant_id, document_id, document_type, source_id, source_name,
                facility_code, scope, quantity, unit, period, status, origin_event)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending_approval', $12)""",
-            uuid.uuid4(), tenant_id, activity["document_id"], activity["document_type"], activity["source_id"],
+            new_id, tenant_id, activity["document_id"], activity["document_type"], activity["source_id"],
             activity["source_name"], activity["facility_code"], activity["scope"], activity["quantity"],
             activity["unit"], activity["period"], activity["origin_event"])
-        return "created"
+        return "created", str(new_id)
 
 
 async def list_activities(tenant_id: str) -> list[dict]:

@@ -9,11 +9,12 @@ import asyncio
 import json
 import logging
 import os
+import uuid
 from decimal import Decimal, InvalidOperation
 
 import nats
 
-from . import config, db
+from . import config, db, events
 
 log = logging.getLogger("ledger.consumer")
 
@@ -53,20 +54,63 @@ async def handle(envelope: dict, subject: str) -> str:
     period = config.period_of(fields)
     if period is None:
         return "no date to place the activity in a period"
-    return await db.upsert_activity(tenant_id, {
+    outcome, activity_id = await db.upsert_activity(tenant_id, {
         "document_id": data["document_id"], "document_type": data["document_type"], "source_id": source.id,
         "source_name": source.name, "facility_code": source.facility, "scope": source.scope, "quantity": quantity,
         "unit": source.activity_unit, "period": period, "origin_event": event,
     })
+    if activity_id and tenant.has_workflow:
+        # The tenant's own BPMN process decides; Carbon Ledger only asks for it (ADR-0003).
+        await events.publish(tenant_id, "workflow.requested", activity_id, {
+            "process_key": "verify-activity", "business_key": activity_id,
+            "title": f"{source.name}: {quantity} {source.activity_unit} ({period})",
+            "variables": {"summary": f"{quantity} {source.activity_unit} · Scope {source.scope} · {source.name} · {period}",
+                          "documentId": data["document_id"]},
+        }, envelope.get("traceid", ""))
+        outcome += ", approval workflow requested"
+    return outcome
+
+
+async def handle_workflow(envelope: dict, subject: str) -> str:
+    tenant_id = envelope.get("tenantid", "")
+    if subject.split(".")[1] != tenant_id:
+        return "ignored (subject and tenantid disagree)"
+    data = envelope["data"]
+    if data.get("process_key") != "verify-activity":
+        return "ignored (not an activity approval)"
+    decisions = data.get("decisions", [])
+    try:
+        activity_id = uuid.UUID(data["business_key"])
+    except (KeyError, ValueError, TypeError):
+        return "ignored (no activity id)"
+    if data.get("approved"):
+        tenant = config.load(tenant_id)
+        activity = await db.get_activity(tenant_id, activity_id)
+        source = next((s for s in tenant.sources if activity and s.id == activity["source_id"]), None)
+        if source is None or source.factor not in tenant.factors:
+            return "cannot approve: no factor"
+        try:
+            await db.approve(tenant_id, activity_id, data["decided_by"], tenant.factors[source.factor])
+        except (LookupError, db.PeriodClosed) as exc:
+            return f"not approved: {exc}"
+        return "approved by " + ", ".join(d["by"] for d in decisions)
+    reason = next((d.get("comment") for d in decisions if not d.get("approved")), "") or "rejected in workflow"
+    await db.reject(tenant_id, activity_id, data.get("decided_by", "workflow"), reason)
+    return "rejected"
 
 
 async def run() -> None:
+    await asyncio.gather(consume("tenant.*.document.>", DURABLE, handle),
+                         consume("tenant.*.workflow.completed", f"{DURABLE}-workflow", handle_workflow))
+
+
+async def consume(subjects: str, durable: str, handler) -> None:
     """Durable pull consumer: events survive restarts and each one is acknowledged after the database commit."""
     while True:
         try:
-            nc = await nats.connect(NATS_URL, name="carbon-ledger", max_reconnect_attempts=-1)
+            nc = await nats.connect(NATS_URL, name=durable, max_reconnect_attempts=-1)
             js = nc.jetstream()
-            sub = await js.pull_subscribe("tenant.*.document.>", durable=DURABLE, stream=STREAM)
+            sub = await js.pull_subscribe(subjects, durable=durable, stream=STREAM)
             log.info("consuming document events")
             while True:
                 try:
@@ -76,7 +120,7 @@ async def run() -> None:
                 for msg in messages:
                     try:
                         envelope = json.loads(msg.data)
-                        outcome = await handle(envelope, msg.subject)
+                        outcome = await handler(envelope, msg.subject)
                         log.info("event handled", extra={"context": {"subject": msg.subject, "event_id": envelope.get("id"),
                                                                      "tenant_id": envelope.get("tenantid"), "outcome": outcome}})
                         await msg.ack()
