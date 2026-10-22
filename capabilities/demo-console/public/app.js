@@ -4,7 +4,7 @@
 const KEYCLOAK = `${location.protocol}//${location.hostname}:8080/realms/ecotrace/protocol/openid-connect`;
 const CLIENT_ID = 'ecotrace-portal';
 const REDIRECT_URI = `${location.origin}/`;
-const STEPS = ['gateway', 'store', 'classify', 'extract', 'persist'];
+const STEPS = ['gateway', 'scan', 'store', 'classify', 'extract', 'persist'];
 
 const $ = (id) => document.getElementById(id);
 let dict = {};
@@ -166,7 +166,7 @@ function renderPipeline(steps = null, running = false) {
   const items = STEPS.map((name, i) => {
     const s = byName[name];
     let state = s ? s.status : 'pending';
-    if (running) state = i === 0 ? 'ok' : i <= 2 ? 'running' : 'pending';
+    if (running) state = i === 0 ? 'ok' : i <= 3 ? 'running' : 'pending';
     const detail = s ? [s.detail, s.ms !== undefined ? `${s.ms} ms` : null, s.extractor].filter(Boolean).join(' · ') : '';
     return h('li', { class: `step step-${state}` }, h('span', { class: 'dot' }), h('div', {}, h('strong', {}, t(`step.${name}`)), h('small', {}, detail)));
   });

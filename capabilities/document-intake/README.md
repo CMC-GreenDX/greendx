@@ -5,14 +5,15 @@ Document Intake capability (Python FastAPI). It turns an uploaded PDF or photo i
 ## Flow
 
 1. The gateway verifies the access token; the service verifies it again and reads the `tenant_id` claim.
-2. The original file is stored under the tenant's own folder (moves to a per-tenant SeaweedFS bucket later in Phase 1).
-3. Classification and extraction:
+2. The file is streamed to ClamAV (clamd INSTREAM). Infected files are rejected with 422 and never stored; if the scanner is down, the upload is refused with 503 (fail closed).
+3. The original file is stored under the tenant's own folder (moves to a per-tenant SeaweedFS bucket later in Phase 1).
+4. Classification and extraction:
    - with the provider's key (`GEMINI_API_KEY` by default, or `ANTHROPIC_API_KEY` with `AI_PROVIDER=claude`): the LLM reads the PDF or image and answers in a JSON schema built from the tenant's config ([ADR-0002](../../docs/adr/0002-hosted-llm-api-for-document-intake.md));
    - without a key, or if the API fails: a rule-based fallback (keywords and regular expressions from the same config).
-4. Values are normalised (numbers, ISO dates); fields below the tenant's `review_threshold` are flagged for review.
-5. The document and its fields are stored in PostgreSQL (`intake` schema), always scoped by `tenant_id`.
+5. Values are normalised (numbers, ISO dates); fields below the tenant's `review_threshold` are flagged for review.
+6. The document and its fields are stored in PostgreSQL (`intake` schema), always scoped by `tenant_id`.
 
-Not yet: ClamAV scan, events on the bus, and the review workflow (later Phase 1 issues and Phase 4).
+Not yet: events on the bus, and the review workflow (later Phase 1 issues and Phase 4).
 
 ## API (through the gateway, bearer token required)
 

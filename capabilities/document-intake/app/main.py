@@ -14,7 +14,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 
-from . import db, extractor, tenant_config
+from . import db, extractor, scanner, tenant_config
 from .auth import User, current_user
 
 
@@ -113,6 +113,19 @@ async def upload(file: UploadFile, user: User = Depends(current_user)) -> dict:
     content = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "File larger than 10 MB")
+
+    started = time.perf_counter()
+    try:
+        signature = await scanner.scan(content)
+    except scanner.ScannerUnavailable as exc:
+        log.error("scan unavailable", extra={"context": {"trace_id": trace_id, "tenant_id": tenant.tenant_id, "error": str(exc)}})
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Malware scanner unavailable; upload refused") from exc
+    if signature:
+        log.warning("malware rejected", extra={"context": {"trace_id": trace_id, "tenant_id": tenant.tenant_id,
+                                                           "user": user.username, "signature": signature}})
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Malware detected ({signature}); file rejected and not stored")
+    pipeline.append({"step": "scan", "status": "ok", "detail": "ClamAV: clean",
+                     "ms": round((time.perf_counter() - started) * 1000)})
 
     started = time.perf_counter()
     document_id = uuid.uuid4()
