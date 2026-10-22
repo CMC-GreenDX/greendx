@@ -21,12 +21,35 @@ services:
       # PostgreSQL 18 images keep data under /var/lib/postgresql/<major>/docker.
       - postgres-data:/var/lib/postgresql
       - ./postgres/01-create-databases.sh:/docker-entrypoint-initdb.d/01-create-databases.sh:ro
-      - ./demo/postgres/10-demo-schema.sql:/docker-entrypoint-initdb.d/10-demo-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d ecotrace"]
       interval: 5s
       timeout: 5s
       retries: 20
+
+  # Applies core/data/sql/core.sql (tenant registry, service roles, row-level security), then exits.
+  db-migrate:
+    <<: *core
+    image: postgres:18.6
+    restart: "no"
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: ecotrace
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      INTAKE_DB_PASSWORD: ${INTAKE_DB_PASSWORD}
+      LEDGER_DB_PASSWORD: ${LEDGER_DB_PASSWORD}
+    command:
+      - sh
+      - -c
+      - >-
+        psql -v ON_ERROR_STOP=1 -v intake_password="$$INTAKE_DB_PASSWORD" -v ledger_password="$$LEDGER_DB_PASSWORD"
+        -f /sql/core.sql
+    volumes:
+      - ../../core/data/sql:/sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   keycloak:
     <<: *core
@@ -137,7 +160,9 @@ services:
     build: ../../capabilities/document-intake
     image: ecotrace/document-intake:dev
     environment:
-      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
+      # Requests run as intake_app (row-level security applies); migrations run as the owner.
+      DATABASE_URL: postgres://intake_app:${INTAKE_DB_PASSWORD}@postgres:5432/ecotrace
+      DATABASE_ADMIN_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
       JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
       JWT_ISSUER: http://localhost:8080/realms/ecotrace
       TENANTS_DIR: /config/tenants
@@ -159,8 +184,8 @@ services:
     volumes:
       - ../../tenants:/config/tenants:ro
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
       keycloak:
         condition: service_healthy
       clamav:
@@ -183,6 +208,25 @@ services:
       interval: 10s
       timeout: 3s
       retries: 10
+
+  # Tenant onboarding CLI; run with `make dxctl ARGS="tenant list"`. Not started by `make up`.
+  dxctl:
+    profiles: [tools]
+    networks: [core]
+    build: ../../tools/dxctl
+    image: ecotrace/dxctl:dev
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KC_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD}
+      SCHEMA_DIR: /schemas
+    volumes:
+      - ../../tenants:/work/tenants:ro
+      - ../../core/schemas:/schemas:ro
 
   apisix:
     <<: *core

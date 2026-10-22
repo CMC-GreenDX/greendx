@@ -236,10 +236,10 @@ async function renderFacilities() {
   const res = await api('/v1/graphql', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: '{ demo_facility(order_by: {name: asc}) { name kind } }' }),
+    body: JSON.stringify({ query: '{ core_facility(order_by: {name: asc}) { name kind } }' }),
   });
   const { data } = await res.json();
-  $('facilities').replaceChildren(...(data?.demo_facility || []).map((f) => h('li', {}, h('strong', {}, f.name), h('span', { class: 'muted' }, f.kind))));
+  $('facilities').replaceChildren(...(data?.core_facility || []).map((f) => h('li', {}, h('strong', {}, f.name), h('span', { class: 'muted' }, f.kind))));
 }
 
 function renderAll() {
