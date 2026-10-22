@@ -216,7 +216,7 @@ async def summary(tenant_id: str, period: str | None) -> dict:
                 FROM ledger.emission_entry e
                 JOIN ledger.activity_record a ON a.id = e.activity_id
                 LEFT JOIN intake.document d ON d.id = a.document_id
-                WHERE e.tenant_id = $1 {where} ORDER BY e.created_at DESC""", *args)
+                WHERE e.tenant_id = $1 {where.replace("period", "e.period")} ORDER BY e.created_at DESC""", *args)
         periods = await conn.fetch(
             """SELECT p.period, coalesce(lp.status, 'open') AS status, lp.closed_by, lp.closed_at
                FROM (SELECT DISTINCT period FROM ledger.activity_record WHERE tenant_id = $1) p
