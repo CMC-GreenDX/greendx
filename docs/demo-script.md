@@ -32,6 +32,7 @@ If something fails: `make logs` shows the service logs, and `make reset && make 
 | 5 | Click **Xem tài liệu gốc** | Every number can be traced back to its source document. This is the basis of the emission lineage the jury will see later. |
 | 6 | Upload the warehouse issue slip photo | A phone photo of a paper slip, in Vietnamese: the AI reads it directly, without a separate OCR step. |
 | 7 | Switch to **EN** and back | All UI text comes from translation files (Vietnamese and English). |
+| 7b | In the terminal: `make dxctl ARGS="tenant create tenants/company-c-cement"`, then log in as `chi.pham` | A new company is onboarded in seconds from four YAML files: users, roles, storage bucket, facilities. No code change, no restart. |
 | 8 | Log out, log in as `bob` | Company B (logistics) has a different configuration: it accepts fuel slips but not warehouse slips, with an 85% threshold. Bob does not see any of Alice's documents or facilities. |
 | 9 | Upload Bob's fuel slip photo | Same code, different company configuration: 185.4 litres of diesel, ready for Scope 1 later. |
 
@@ -46,7 +47,7 @@ Optional, in the terminal: `make demo` shows that a call without a token, or wit
 - **"You send company invoices to an external AI?"** Yes, when AI extraction is on. It is optional and per deployment. Without a key, a rule-based fallback runs entirely on-premise. Before production, each company must opt in. See [ADR-0002](adr/0002-hosted-llm-api-for-document-intake.md).
 - **"Gemini is free, so what does Google do with the data?"** On the free tier Google may use the content to improve its products, so we only send fictional sample documents. Real deployments use a paid tier, another provider, or the on-premise fallback.
 - **"Is the AI open source?"** No. Gemini (and the optional Claude provider) are hosted services and is not shipped with EcoTrace. Everything we ship is under OSI licenses ([docs/licenses.md](licenses.md)), and the extractor can be switched to a local model later.
-- **"Is isolation enforced in the database?"** Today it is enforced by the gateway (signature), the services (tenant claim on every query) and Hasura permissions. PostgreSQL row-level security comes in Phase 2.
+- **"Is isolation enforced in the database?"** Yes. Services connect with roles that cannot bypass PostgreSQL row-level security, and `make rls-check` shows that a query explicitly asking for another company's rows returns nothing, and that a forged insert is rejected ([ADR-0004](adr/0004-tenant-model.md)).
 - **"Where are the other core services?"** OpenBao, Flowable, Kestra, Trillian and observability are the remaining Phase 1 work. Their choices and licenses are in [ADR-0001](adr/0001-core-technology-choices.md).
 
 ## Consoles (optional)
