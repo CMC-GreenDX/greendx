@@ -14,7 +14,7 @@ from decimal import Decimal, InvalidOperation
 
 import nats
 
-from . import config, db, events
+from . import config, db, events, live
 
 log = logging.getLogger("ledger.consumer")
 
@@ -59,6 +59,8 @@ async def handle(envelope: dict, subject: str) -> str:
         "source_name": source.name, "facility_code": source.facility, "scope": source.scope, "quantity": quantity,
         "unit": source.activity_unit, "period": period, "origin_event": event,
     })
+    if activity_id:
+        live.notify(tenant_id, "activity", status="pending_approval", period=period)
     if activity_id and tenant.has_workflow:
         # The tenant's own BPMN process decides; Carbon Ledger only asks for it (ADR-0003).
         await events.publish(tenant_id, "workflow.requested", activity_id, {
@@ -93,9 +95,11 @@ async def handle_workflow(envelope: dict, subject: str) -> str:
             await db.approve(tenant_id, activity_id, data["decided_by"], tenant.factors[source.factor])
         except (LookupError, db.PeriodClosed) as exc:
             return f"not approved: {exc}"
+        live.notify(tenant_id, "entry", status="approved", period=activity["period"], scope=activity["scope"])
         return "approved by " + ", ".join(d["by"] for d in decisions)
     reason = next((d.get("comment") for d in decisions if not d.get("approved")), "") or "rejected in workflow"
     await db.reject(tenant_id, activity_id, data.get("decided_by", "workflow"), reason)
+    live.notify(tenant_id, "activity", status="rejected")
     return "rejected"
 
 

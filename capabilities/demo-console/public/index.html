@@ -89,6 +89,37 @@
         </div>
       </article>
 
+      <article class="card" id="dashboard-card" hidden>
+        <div class="result-head">
+          <div>
+            <h2 data-i18n="dash.title"></h2>
+            <p class="muted" data-i18n="dash.body"></p>
+          </div>
+          <span class="live" id="live-badge"><span class="live-dot"></span><span id="live-text"></span></span>
+        </div>
+        <div class="dash-grid">
+          <figure class="chart">
+            <figcaption>
+              <strong data-i18n="dash.byPeriod"></strong>
+              <span class="legend">
+                <span><i class="swatch s1"></i><span data-i18n="ledger.scope1"></span></span>
+                <span><i class="swatch s2"></i><span data-i18n="ledger.scope2"></span></span>
+              </span>
+            </figcaption>
+            <div class="chart-wrap" id="chart-period"></div>
+            <details>
+              <summary data-i18n="dash.table"></summary>
+              <table class="list" id="chart-period-table"></table>
+            </details>
+          </figure>
+          <figure class="chart">
+            <figcaption><strong data-i18n="dash.byFacility"></strong></figcaption>
+            <div id="chart-facility"></div>
+          </figure>
+        </div>
+        <div class="chart-tooltip" id="chart-tooltip" hidden></div>
+      </article>
+
       <article class="card" id="inbox-card">
         <h2 data-i18n="inbox.title"></h2>
         <p class="muted" data-i18n="inbox.body"></p>
