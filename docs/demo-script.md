@@ -33,6 +33,8 @@ If something fails: `make logs` shows the service logs, and `make reset && make 
 | 8 | Log out, log in as `bob` | Company B (logistics) has a different configuration: it accepts fuel slips but not warehouse slips, with an 85% threshold. Bob does not see any of Alice's documents or facilities. |
 | 9 | Upload Bob's fuel slip photo | Same code, different company configuration: 185.4 litres of diesel, ready for Scope 1 later. |
 
+Optional, events: `make events TENANT=company-a-steel` prints the CloudEvents that Intake published for the last upload, including the extracted fields. This is what Carbon Ledger will consume.
+
 Optional, malware scan: in the terminal, `make intake-check` uploads the EICAR antivirus test file and shows it is rejected (HTTP 422) and never stored.
 
 Optional, in the terminal: `make demo` shows that a call without a token, or with a token whose tenant was edited by hand, is rejected with 401.
@@ -43,7 +45,7 @@ Optional, in the terminal: `make demo` shows that a call without a token, or wit
 - **"Gemini is free, so what does Google do with the data?"** On the free tier Google may use the content to improve its products, so we only send fictional sample documents. Real deployments use a paid tier, another provider, or the on-premise fallback.
 - **"Is the AI open source?"** No. Gemini (and the optional Claude provider) are hosted services and is not shipped with EcoTrace. Everything we ship is under OSI licenses ([docs/licenses.md](licenses.md)), and the extractor can be switched to a local model later.
 - **"Is isolation enforced in the database?"** Today it is enforced by the gateway (signature), the services (tenant claim on every query) and Hasura permissions. PostgreSQL row-level security comes in Phase 2.
-- **"Where are the other core services?"** OpenBao, SeaweedFS, NATS JetStream, Flowable, Kestra, Trillian and observability are the remaining Phase 1 work. Their choices and licenses are in [ADR-0001](adr/0001-core-technology-choices.md).
+- **"Where are the other core services?"** OpenBao, Flowable, Kestra, Trillian and observability are the remaining Phase 1 work. Their choices and licenses are in [ADR-0001](adr/0001-core-technology-choices.md).
 
 ## Consoles (optional)
 

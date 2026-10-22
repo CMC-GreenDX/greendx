@@ -4,7 +4,7 @@
 const KEYCLOAK = `${location.protocol}//${location.hostname}:8080/realms/ecotrace/protocol/openid-connect`;
 const CLIENT_ID = 'ecotrace-portal';
 const REDIRECT_URI = `${location.origin}/`;
-const STEPS = ['gateway', 'scan', 'store', 'classify', 'extract', 'persist'];
+const STEPS = ['gateway', 'scan', 'store', 'classify', 'extract', 'persist', 'publish'];
 
 const $ = (id) => document.getElementById(id);
 let dict = {};
@@ -162,7 +162,12 @@ async function renderSamples() {
 }
 
 function renderPipeline(steps = null, running = false) {
-  const byName = Object.fromEntries((steps || []).map((s) => [s.step, s]));
+  const byName = {};
+  for (const s of steps || []) {
+    // A step can run more than once (one event per stage): keep the worst status and all details.
+    const prev = byName[s.step];
+    byName[s.step] = prev ? { ...s, status: prev.status === 'ok' ? s.status : prev.status, detail: `${prev.detail} · ${s.detail}` } : s;
+  }
   const items = STEPS.map((name, i) => {
     const s = byName[name];
     let state = s ? s.status : 'pending';

@@ -10,7 +10,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -48,6 +48,9 @@ demo: ## Run the scripted core demo (identity, gateway, tenant isolation)
 
 intake-check: ## Check document upload, extraction and tenant isolation (CHECK_IMAGES=1 also tests photos, needs AI)
 	@bash deploy/compose/demo/intake-check.sh
+
+events: ## Show the latest document events of TENANT (default company-a-steel) from NATS
+	@$(COMPOSE) exec -T document-intake python - $(or $(TENANT),company-a-steel) < deploy/compose/demo/events.py
 
 PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright/python:v1.64.0-noble
 ui-check: ## Browser smoke test of the demo console; screenshots in /tmp/ecotrace-ui

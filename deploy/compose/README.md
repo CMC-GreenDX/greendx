@@ -20,6 +20,8 @@ make reset    # stop and delete data volumes
 | `keycloak` | `quay.io/keycloak/keycloak:26.8.1` | 8080 | SSO, issues tokens with the `tenant_id` claim |
 | `hasura` | `hasura/graphql-engine:v2.50.3` | 8081 | GraphQL API with per-tenant permissions |
 | `apisix` | `apache/apisix:3.19.0-debian` | 9080 | API gateway: JWT verification, rate limiting, routing |
+| `nats` | `nats:2.15.1` | none | Event bus (JetStream), stream `ECOTRACE_EVENTS` |
+| `seaweedfs` | `chrislusf/seaweedfs:4.48` | none | S3 object storage, one bucket per tenant |
 | `clamav` | `clamav/clamav:1.5.4` | none | Malware scan of every upload (first start downloads signatures) |
 | `document-intake` | built from `capabilities/document-intake` | none (via gateway `/intake/*`) | Document classification and extraction |
 | `demo-console` | `nginx:1.30.6-alpine` | none (via gateway `/`) | Static demo console |

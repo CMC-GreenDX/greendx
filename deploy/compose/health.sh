@@ -29,6 +29,11 @@ check "keycloak   (container healthcheck)" container_healthy keycloak
 check "keycloak   realm discovery" http_ok "$KEYCLOAK_URL/realms/ecotrace/.well-known/openid-configuration"
 check "hasura     /healthz" http_ok "$HASURA_URL/healthz"
 check "apisix     gateway -> hasura" http_ok "$GATEWAY_URL/gateway/health"
+nats_ok() {
+  "${COMPOSE[@]}" exec -T document-intake python -c     "import urllib.request; urllib.request.urlopen('http://nats:8222/healthz?js-enabled-only=true', timeout=3)"
+}
+check "nats       JetStream /healthz" nats_ok
+check "seaweedfs  (container healthcheck)" container_healthy seaweedfs
 check "clamav     (container healthcheck)" container_healthy clamav
 check "intake     (container healthcheck)" container_healthy document-intake
 check "intake     gateway -> /intake/health" http_ok "$GATEWAY_URL/intake/health"

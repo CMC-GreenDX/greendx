@@ -49,6 +49,8 @@ Planned for the `core` Compose profile (Phase 1) unless noted. ✅ means the lic
 |---|---|---|---|---|
 | Python (base image of Document Intake) | 3.13.16 | `python:3.13.16-slim-trixie` | PSF-2.0 ✅ (Debian packages under their own OSI licenses) | Runtime of the Document Intake service |
 | anthropic (Python SDK) | 1.17.0 | PyPI | MIT ✅ | Calls the Claude API (`AI_PROVIDER=claude`) |
+| boto3 | 1.43.117 | PyPI | Apache-2.0 ✅ | S3 client for SeaweedFS |
+| nats-py | 2.16.0 | PyPI | Apache-2.0 ✅ | Publishes events to NATS JetStream |
 | google-genai (Python SDK) | 2.32.0 | PyPI | Apache-2.0 ✅ | Calls the Gemini API (`AI_PROVIDER=gemini`, default) |
 | FastAPI | 0.157.0 | PyPI | MIT ✅ | HTTP API of Document Intake |
 | Uvicorn | 0.54.0 | PyPI | BSD-3-Clause ✅ | ASGI server |

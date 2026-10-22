@@ -25,6 +25,7 @@
   "step.classify": "AI phân loại tài liệu theo cấu hình công ty",
   "step.extract": "AI trích xuất các trường kèm độ tin cậy",
   "step.persist": "Lưu kết quả, gắn với tài liệu gốc",
+  "step.publish": "Phát sự kiện lên event bus (NATS) cho các ứng dụng khác",
   "result.type": "{type}",
   "result.sub": "{file} · {confidence} tin cậy · xử lý bởi {extractor}",
   "result.unknown": "Không thuộc loại tài liệu được cấu hình",

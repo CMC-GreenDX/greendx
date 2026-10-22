@@ -37,6 +37,11 @@ jq -c '{type: .document.document_type, status: .document.status, extractor: .doc
 [ "$(jq -r .document.document_type <<<"$result")" = electricity_bill ] && pass "electricity bill classified" || fail "electricity bill not classified"
 [ "$(field "$result" consumption_kwh)" = 188800 ] && pass "consumption 188800 kWh extracted" || fail "consumption is '$(field "$result" consumption_kwh)'"
 alice_doc=$(jq -r .document.id <<<"$result")
+stored=$(jq -r '.pipeline[] | select(.step == "store") | .detail' <<<"$result")
+[[ "$stored" == s3://ecotrace-company-a-steel/* ]] && pass "original stored in Company A's own bucket ($stored)" || fail "stored at '$stored'"
+events() { docker compose --env-file .env -f deploy/compose/docker-compose.yml exec -T document-intake python - "$@" < deploy/compose/demo/events.py; }
+events company-a-steel "$alice_doc" >/dev/null && pass "document.received and document.extracted published on tenant.company-a-steel.*" || fail "events for alice's document missing"
+events company-b-logistics "$alice_doc" >/dev/null && fail "alice's document appears on Company B's subjects" || pass "alice's events are not on Company B's subjects"
 
 result=$(upload "$alice" "$SAMPLES/company-a-steel/seed/documents/purchase-invoice-0007.pdf")
 [ "$(jq -r .document.document_type <<<"$result")" = purchase_invoice ] && pass "purchase invoice classified" || fail "purchase invoice not classified"

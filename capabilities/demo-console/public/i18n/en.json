@@ -25,6 +25,7 @@
   "step.classify": "AI classifies the document using the company's configuration",
   "step.extract": "AI extracts fields with a confidence score",
   "step.persist": "Results saved and linked to the original document",
+  "step.publish": "Event published on the bus (NATS) for other apps",
   "result.type": "{type}",
   "result.sub": "{file} · {confidence} confidence · processed by {extractor}",
   "result.unknown": "Not one of the configured document types",
