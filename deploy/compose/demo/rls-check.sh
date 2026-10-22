@@ -35,7 +35,7 @@ out=$(sql company-a-steel "INSERT INTO intake.document (id, tenant_id, filename,
   VALUES (gen_random_uuid(), 'company-b-logistics', 'forged.pdf', 'application/pdf', 1, 'x', 's3://x/y', 'extracted', 'mallory')")
 [[ "$out" == *"row-level security"* ]] && pass "as Company A, writing a row for Company B is rejected by the database" || fail "forged insert: $out"
 
-out=$(sql company-a-steel "UPDATE intake.document SET status = 'tampered' WHERE tenant_id = 'company-b-logistics'")
-[ "$out" = "UPDATE 0" ] && pass "as Company A, updating Company B's documents changes nothing (UPDATE 0)" || fail "cross-tenant update: $out"
+n=$(sql company-a-steel "WITH changed AS (UPDATE intake.document SET status = 'tampered' WHERE tenant_id = 'company-b-logistics' RETURNING 1) SELECT count(*) FROM changed")
+[ "$n" = 0 ] && pass "as Company A, updating Company B's documents changes nothing (0 rows)" || fail "cross-tenant update changed '$n' rows"
 
 [ "$failed" -eq 0 ] && printf '\033[32mAll RLS checks passed.\033[0m\n' || { printf '\033[31mSome RLS checks failed.\033[0m\n'; exit 1; }
