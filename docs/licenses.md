@@ -69,6 +69,7 @@ Planned for the `core` Compose profile (Phase 1) unless noted. ✅ means the lic
 | transparency-dev/merkle | v0.0.2 | Go module | Apache-2.0 ✅ | RFC 6962 leaf hashing |
 | gRPC-Go / protobuf-go | v1.83.2 / v1.36.12 | Go modules | Apache-2.0 ✅ / BSD-3-Clause ✅ | Talks to the Trillian log server |
 | nginx | 1.30.6 | `nginx:1.30.6-alpine` | BSD-2-Clause ✅ | Serves the static demo console |
+| Swagger UI | v5.33.3 | `swaggerapi/swagger-ui:v5.33.3` | Apache-2.0 ✅ | API reference page at `/api-docs` |
 
 Transitive Python dependencies of Document Intake are resolved at image build time and are not yet locked; a lock file is a follow-up.
 
@@ -121,6 +122,7 @@ GitHub Actions are pinned to the full commit SHA of the release tag, so a moved 
 | SSH server feature | 1.1.0 | `ghcr.io/devcontainers/features/sshd` | MIT ✅ (repository `devcontainers/features`) | Allows `gh codespace ssh` for scripted runs |
 | jq, make | Ubuntu 24.04 package versions | apt | MIT ✅, GPL-3.0-or-later ✅ | Demo and health scripts; not pinned beyond the base image release |
 | Playwright (Python) and its image | 1.64.0 | `mcr.microsoft.com/playwright/python:v1.64.0-noble` | Apache-2.0 ✅ | Browser smoke test (`make ui-check`) only |
+| Newman (Postman collection runner) | 6.1.3 | `postman/newman:6.1.3-alpine` | Apache-2.0 ✅ | Runs the API collection (`make api-check`) only |
 | ReportLab | 5.0.1 | PyPI | BSD-3-Clause ✅ | Generates the fictional sample PDFs (`tools/seed`) |
 | Pillow | 13.0.0 | PyPI | MIT-CMU ✅ | Generates the fictional sample photos (`tools/seed`) |
 | DejaVu fonts | Ubuntu package | apt `fonts-dejavu-core` | Bitstream Vera license plus public-domain changes: a permissive font license, not an OSI software license (flagged) | Fonts embedded in the sample documents |

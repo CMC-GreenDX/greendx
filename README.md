@@ -75,6 +75,10 @@ make demo     # identity -> gateway -> data, with tenant isolation
 
 See [docs/demo-script.md](docs/demo-script.md) for the walkthrough and [deploy/compose](deploy/compose) for details. Full installation instructions are completed in Phase 9.
 
+## API
+
+Every feature of the console is available through the APIs behind the gateway. The reference page at <http://localhost:9080/api-docs> lets you log in and try each endpoint. The [API guide](docs/api/README.md) covers tokens, curl examples, errors, events and a Postman collection.
+
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. All participants follow the [Code of Conduct](CODE_OF_CONDUCT.md).
