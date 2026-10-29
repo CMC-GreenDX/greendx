@@ -58,7 +58,9 @@ demo-password: ## Set every demo user's password again from DEMO_USER_PASSWORD (
 	@$(MAKE) --no-print-directory seed SEED_ARGS=--reset-passwords
 
 public-url: ## Print this codespace's public address of the gateway (set it as PUBLIC_URL in .env)
-	@if [ -n "$$CODESPACE_NAME" ]; then echo "https://$$CODESPACE_NAME-9080.$$GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"; \
+	@# ssh sessions into a codespace do not get its variables; read them from the shared file instead.
+	@name=$${CODESPACE_NAME:-$$(jq -r '.CODESPACE_NAME // empty' /workspaces/.codespaces/shared/environment-variables.json 2>/dev/null)}; \
+	if [ -n "$$name" ]; then echo "https://$$name-9080.$${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}"; \
 	else echo "Not in a codespace: PUBLIC_URL is the address users type, e.g. https://ecotrace.example.org"; fi
 
 onboarding-check: ## Brief acceptance test: onboard company-c-cement from config only, log in, upload, disable
