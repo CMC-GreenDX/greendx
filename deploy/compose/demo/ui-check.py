@@ -89,10 +89,20 @@ with sync_playwright() as p:
     expect(page.locator("#login-view")).to_be_visible(timeout=20_000)
     login(page, "an.tran")
     expect(page.locator("#ledger-card")).to_be_visible(timeout=15_000)
-    approve = page.locator("#pending-body button.primary")
-    if approve.count():
-        approve.first.click()
-        page.wait_for_timeout(2000)
+    page.wait_for_timeout(1500)
+    page.screenshot(path=SHOTS / "6a-inbox.png", full_page=True)
+    expect(page.locator("#live-badge.on")).to_be_visible(timeout=15_000)
+    check(True, "dashboard is connected to the live stream (SSE)")
+    activity_tasks = page.locator("#inbox-list li").filter(has_text="Trưởng bộ phận")
+    if activity_tasks.count():
+        check(True, "an.tran's inbox shows the approval step from Company A's BPMN")
+        activity_tasks.first.locator("button.primary").click()
+        expect(page.locator("#chart-period svg .bar").first).to_be_visible(timeout=20_000)
+        check(True, "dashboard chart updated live after the approval, without reloading")
+        page.screenshot(path=SHOTS / "6b-dashboard-live.png", full_page=True)
+        page.reload()
+        expect(page.locator("#ledger-card")).to_be_visible(timeout=15_000)
+        page.wait_for_timeout(1500)
     check(page.locator("#entries-body tr.clickable").count() > 0, "an.tran (approver) sees recorded emissions in the ledger")
     check(page.locator("#kpi-scope2").inner_text() not in ("–", "0"), f"Scope 2 total shown ({page.locator('#kpi-scope2').inner_text()} tCO2e)")
     page.screenshot(path=SHOTS / "6-ledger.png", full_page=True)
@@ -101,6 +111,21 @@ with sync_playwright() as p:
     lineage = page.locator("#lineage-body").inner_text()
     check(".pdf" in lineage and "an.tran" in lineage, "lineage shows the source document and the approver")
     page.screenshot(path=SHOTS / "7-lineage.png")
+    page.click("#lineage-close")
+
+    page.on("dialog", lambda dialog: dialog.accept())
+    page.select_option("#ledger-period", "2026-09")
+    page.wait_for_timeout(1500)
+    if page.locator("#seal-close").is_visible():
+        page.click("#seal-close")
+        page.wait_for_timeout(4000)
+    expect(page.locator("#seal-verify")).to_be_visible(timeout=15_000)
+    page.click("#seal-verify")
+    expect(page.locator("#verify-result")).to_be_visible(timeout=15_000)
+    expected = os.environ.get("EXPECT_SEAL", "valid")
+    result = page.locator("#verify-result").get_attribute("class") or ""
+    check(("ok" in result) == (expected == "valid"), f"seal verification in the console shows '{expected}'")
+    page.screenshot(path=SHOTS / f"8-seal-{expected}.png", full_page=True)
 
     browser.close()
 

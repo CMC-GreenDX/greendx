@@ -52,6 +52,7 @@ class TenantLedgerConfig:
     enabled: bool
     sources: list[Source]
     factors: dict[str, Factor]
+    has_workflow: bool = False
 
     def source_for(self, document_type: str, fields: dict[str, str | None]) -> Source | None:
         return next((s for s in self.sources if s.matches(document_type, fields)), None)
@@ -81,6 +82,7 @@ def load(tenant_id: str) -> TenantLedgerConfig:
         factors={k: Factor(key=k, name=f["name"], value=float(f["value"]), unit=f["unit"], gas=f["gas"],
                            version=f["version"], source=f["source"], status=f.get("status", "official"))
                  for k, f in factors.get("factors", {}).items()},
+        has_workflow=(pack / "workflows" / "verify-activity.bpmn").exists(),
     )
 
 

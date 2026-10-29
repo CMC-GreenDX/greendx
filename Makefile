@@ -10,7 +10,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -59,6 +59,20 @@ onboarding-check: ## Brief acceptance test: onboard company-c-cement from config
 ledger-check: ## Check Carbon Ledger: event -> activity -> approval -> emission entry -> lineage
 	@bash deploy/compose/demo/ledger-check.sh
 
+workflow-check: ## Phase 4: different approval flows for A and B, purchase invoices go to Purchase Approval
+	@bash deploy/compose/demo/workflow-check.sh
+
+seal-check: ## Demo step 4: close and seal a period, tamper with a row, verification fails, restore
+	@bash deploy/compose/demo/seal-check.sh
+
+TENANT ?= company-a-steel
+PERIOD ?= 2026-09
+tamper: ## For the live demo: halve one emission entry of TENANT/PERIOD directly in PostgreSQL (untamper restores)
+	@$(COMPOSE) exec -T postgres psql -U postgres -d ecotrace -c "UPDATE ledger.emission_entry SET co2e_kg = co2e_kg / 2 		WHERE id = (SELECT id FROM ledger.emission_entry WHERE tenant_id = '$(TENANT)' AND period = '$(PERIOD)' ORDER BY created_at LIMIT 1) 		RETURNING id, source_id, co2e_kg"
+
+untamper: ## Undo make tamper
+	@$(COMPOSE) exec -T postgres psql -U postgres -d ecotrace -c "UPDATE ledger.emission_entry SET co2e_kg = co2e_kg * 2 		WHERE id = (SELECT id FROM ledger.emission_entry WHERE tenant_id = '$(TENANT)' AND period = '$(PERIOD)' ORDER BY created_at LIMIT 1) 		RETURNING id, source_id, co2e_kg"
+
 rls-check: ## Prove that PostgreSQL denies cross-tenant reads and writes for the service role
 	@bash deploy/compose/demo/rls-check.sh
 
@@ -74,7 +88,7 @@ events: ## Show the latest document events of TENANT (default company-a-steel) f
 PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright/python:v1.64.0-noble
 ui-check: ## Browser smoke test of the demo console; screenshots in /tmp/ecotrace-ui
 	@mkdir -p /tmp/ecotrace-ui
-	docker run --rm --network host -e DEMO_USER_PASSWORD -e SCREENSHOT_DIR=/shots \
+	docker run --rm --network host -e DEMO_USER_PASSWORD -e EXPECT_SEAL -e SCREENSHOT_DIR=/shots \
 		-v "$(CURDIR)/deploy/compose/demo:/tests:ro" -v /tmp/ecotrace-ui:/shots $(PLAYWRIGHT_IMAGE) \
 		bash -c "pip install -q --root-user-action=ignore playwright==1.64.0 && python /tests/ui-check.py"
 

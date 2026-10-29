@@ -90,6 +90,13 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY_URL/intake/docum
 curl -sS -X POST "$GATEWAY_URL/intake/documents/$alice_doc/review" -H "Authorization: Bearer $alice" \
   -H 'Content-Type: application/json' -d '{"values": {"consumption_kwh": "188800"}}' >/dev/null  # restore for repeat runs
 
+result=$(upload "$alice" "$SAMPLES/company-a-steel/seed/documents/einvoice-purchase-0815.xml")
+[ "$(jq -r .document.extractor <<<"$result")" = e-invoice-xml ] && [ "$(field "$result" total_amount_vnd)" = 158400000 ]   && [ "$(jq -r '[.fields[].confidence] | min == 1' <<<"$result")" = true ]   && pass "e-invoice XML read without AI: purchase invoice, total 158400000 VND, confidence 1.0" || fail "e-invoice A: $(jq -c '{t: .document.document_type, e: .document.extractor, d: .detail}' <<<"$result")"
+result=$(upload "$bob" "$SAMPLES/company-b-logistics/seed/documents/einvoice-diesel-0930.xml")
+[ "$(jq -r .document.document_type <<<"$result")" = fuel_slip ] && [ "$(field "$result" quantity_liters)" = 1200 ]   && pass "diesel e-invoice classified from its line units as a fuel slip: 1200 L ($(jq -r .document.status <<<"$result"): no vehicle plate on a bulk delivery)"   || fail "e-invoice B: $(jq -c '{t: .document.document_type, f: [.fields[] | {name, value}]}' <<<"$result")"
+code=$(printf '<note>not an invoice</note>' | curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY_URL/intake/documents"   -H "Authorization: Bearer $alice" -F "file=@-;filename=note.xml;type=text/xml")
+[ "$code" = 415 ] && pass "XML that is not an e-invoice is refused (HTTP 415)" || fail "non e-invoice XML returned $code"
+
 eicar='X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*'
 code=$(printf '%s' "$eicar" | curl -s -o /tmp/eicar-reply -w '%{http_code}' -X POST "$GATEWAY_URL/intake/documents"   -H "Authorization: Bearer $alice" -F "file=@-;filename=eicar.pdf;type=application/pdf")
 before=$(curl -sS "$GATEWAY_URL/intake/documents" -H "Authorization: Bearer $alice" | jq '[.documents[] | select(.filename == "eicar.pdf")] | length')

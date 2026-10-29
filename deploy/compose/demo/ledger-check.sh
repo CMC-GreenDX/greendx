@@ -40,8 +40,14 @@ activity_id=$(jq -r .id <<<"$activity")
 if [ "$(jq -r .status <<<"$activity")" = pending_approval ]; then
   code=$(api "$alice" "/ledger/activities/$activity_id/approve" -X POST -o /dev/null -w '%{http_code}')
   [ "$code" = 403 ] && pass "alice (uploader, reviewer) cannot approve (HTTP 403)" || fail "alice approve returned $code"
-  result=$(api "$approver" "/ledger/activities/$activity_id/approve" -X POST)
-  echo "     approved by an.tran: $(jq -c . <<<"$result")"
+  code=$(api "$approver" "/ledger/activities/$activity_id/approve" -X POST -o /dev/null -w '%{http_code}')
+  [ "$code" = 409 ] && pass "direct approval is refused: Company A approves through its BPMN workflow (HTTP 409)" || fail "direct approve returned $code"
+  . "$(dirname "$0")/lib.sh"
+  complete_task "$approver" "$activity_id" true >/dev/null && echo "     approved by an.tran in My approvals"
+  for _ in $(seq 1 15); do
+    [ "$(api "$alice" /ledger/activities | jq -r --arg a "$activity_id" '.activities[] | select(.id == $a) | .status')" = approved ] && break
+    sleep 1
+  done
 fi
 summary=$(api "$alice" "/ledger/summary?period=2026-09")
 entry_id=$(api "$alice" /ledger/activities | jq -r --arg a "$activity_id" '.activities[] | select(.id == $a) | .entry_id')
@@ -55,6 +61,12 @@ lineage=$(api "$alice" "/ledger/entries/$entry_id/lineage")
   || fail "lineage: $(jq -c '{d: .document.filename, a: .activity.decided_by, detail}' <<<"$lineage")"
 [ "$(jq -r .entry.factor_version <<<"$lineage")" = vn-grid-2024-study ] && pass "factor version and citation stored with the entry ($(jq -r .entry.factor_status <<<"$lineage"))" \
   || fail "factor: $(jq -c .entry.factor_version <<<"$lineage")"
+
+curl -sS "$GATEWAY_URL/ledger/report?period=2026-09&format=xlsx" -H "Authorization: Bearer $alice" -o /tmp/ecotrace-report.xlsx
+sheets=$(python3 -c "import zipfile,re; print(','.join(re.findall(r'name=\"([^\"]+)\"', zipfile.ZipFile('/tmp/ecotrace-report.xlsx').read('xl/workbook.xml').decode())))" 2>&1)
+[[ "$sheets" == *"Chi tiết - Entries"* ]] && pass "XLSX inventory report exported (sheets: $sheets)" || fail "xlsx export: $sheets"
+csv=$(curl -sS "$GATEWAY_URL/ledger/report?period=2026-09&format=csv" -H "Authorization: Bearer $alice")
+grep -q "electricity-bill-2026-09.pdf" <<<"$csv" && grep -q "128.573" <<<"$csv" && pass "CSV export lists the entry with its source document and 128.573 tCO2e" || fail "csv export: $(head -c 300 <<<"$csv")"
 
 invoice=$(upload_and_confirm "$alice" "$SAMPLES/purchase-invoice-0007.pdf")
 sleep 3
