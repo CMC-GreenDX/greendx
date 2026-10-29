@@ -19,5 +19,12 @@
       "vi": "Hoá đơn GTGT mua lốp xe (PDF)",
       "en": "VAT invoice for tyres (PDF)"
     }
+  },
+  {
+    "file": "einvoice-diesel-0930.xml",
+    "title": {
+      "vi": "Hoá đơn điện tử XML mua 1.200 lít dầu (đọc thẳng, không cần AI)",
+      "en": "E-invoice XML for 1,200 L of diesel (read directly, no AI)"
+    }
   }
 ]

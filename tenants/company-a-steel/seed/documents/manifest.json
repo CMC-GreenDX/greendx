@@ -19,5 +19,12 @@
       "vi": "Hoá đơn GTGT mua gạch chịu lửa (PDF)",
       "en": "VAT invoice for refractory bricks (PDF)"
     }
+  },
+  {
+    "file": "einvoice-purchase-0815.xml",
+    "title": {
+      "vi": "Hoá đơn điện tử XML mua con lăn (đọc thẳng, không cần AI)",
+      "en": "E-invoice XML for rollers (read directly, no AI)"
+    }
   }
 ]

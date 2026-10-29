@@ -1,0 +1,20 @@
+# Departments, roles and initial users. Applied by `dxctl tenant create`.
+departments:
+  - {id: fleet, name: Đội xe}
+  - {id: finance, name: Phòng Tài chính}
+
+users:
+  - username: bob
+    first_name: Bob
+    last_name: Tran
+    email: bob@company-b.example
+    department: fleet
+    roles: [uploader, reviewer]
+    initial_password_env: DEMO_USER_PASSWORD
+  - username: binh.le
+    first_name: Binh
+    last_name: Le
+    email: binh.le@company-b.example
+    department: finance
+    roles: [approver]
+    initial_password_env: DEMO_USER_PASSWORD

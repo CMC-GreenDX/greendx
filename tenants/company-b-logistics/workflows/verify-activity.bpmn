@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Company B: two steps. The fleet supervisor checks the quantity, then finance approves.
+     A rejection at the first step ends the process without reaching finance. -->
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="https://ecotrace.example/workflows/company-b-logistics">
+  <process id="verify-activity" name="Verify activity data (Company B)" isExecutable="true">
+    <startEvent id="start"/>
+    <sequenceFlow id="toCheck" sourceRef="start" targetRef="fleetChecks"/>
+    <userTask id="fleetChecks" name="Đội xe kiểm tra số lượng nhiên liệu / điện" flowable:candidateGroups="reviewer"/>
+    <sequenceFlow id="toDecision" sourceRef="fleetChecks" targetRef="checked"/>
+    <exclusiveGateway id="checked" default="rejectedFlow"/>
+    <sequenceFlow id="acceptedFlow" sourceRef="checked" targetRef="financeApproves">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${approved}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="rejectedFlow" sourceRef="checked" targetRef="rejected"/>
+    <userTask id="financeApproves" name="Phòng Tài chính phê duyệt" flowable:candidateGroups="approver"/>
+    <sequenceFlow id="toEnd" sourceRef="financeApproves" targetRef="end"/>
+    <endEvent id="end"/>
+    <endEvent id="rejected"/>
+  </process>
+</definitions>
