@@ -73,8 +73,8 @@ GRANT USAGE ON SCHEMA intake TO intake_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA intake TO intake_app;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA intake TO intake_app;
 -- Carbon Ledger reads reviewed documents and their fields (lineage).
-GRANT USAGE ON SCHEMA intake TO ledger_app;
-GRANT SELECT ON ALL TABLES IN SCHEMA intake TO ledger_app;
+GRANT USAGE ON SCHEMA intake TO ledger_app, purchase_app;
+GRANT SELECT ON ALL TABLES IN SCHEMA intake TO ledger_app, purchase_app;
 """
 
 _RLS = """

@@ -139,16 +139,17 @@ async def tenant_active(tenant_id: str) -> bool:
         return await conn.fetchval("SELECT status FROM core.tenant WHERE id = $1", tenant_id) == "active"
 
 
-async def upsert_activity(tenant_id: str, activity: dict) -> str:
-    """Creates or refreshes the activity of a document. Approved activities are never changed here."""
+async def upsert_activity(tenant_id: str, activity: dict) -> tuple[str, str | None]:
+    """Creates or refreshes the activity of a document. Approved activities are never changed here.
+    Returns the outcome and the id of the activity that now waits for approval (None if nothing to approve)."""
     async with tenant_tx(tenant_id) as conn:
         existing = await conn.fetchrow(
             "SELECT id, status FROM ledger.activity_record WHERE tenant_id = $1 AND document_id = $2 FOR UPDATE",
             tenant_id, activity["document_id"])
         if existing and existing["status"] == "approved":
-            return "unchanged (already approved)"
+            return "unchanged (already approved)", None
         if not await _period_open(conn, tenant_id, activity["period"]):
-            return f"ignored (period {activity['period']} is closed)"
+            return f"ignored (period {activity['period']} is closed)", None
         if existing:
             await conn.execute(
                 """UPDATE ledger.activity_record SET source_id = $3, source_name = $4, facility_code = $5, scope = $6,
@@ -157,15 +158,16 @@ async def upsert_activity(tenant_id: str, activity: dict) -> str:
                    WHERE tenant_id = $1 AND id = $2""",
                 tenant_id, existing["id"], activity["source_id"], activity["source_name"], activity["facility_code"],
                 activity["scope"], activity["quantity"], activity["unit"], activity["period"], activity["origin_event"])
-            return "updated"
+            return "updated", str(existing["id"])
+        new_id = uuid.uuid4()
         await conn.execute(
             """INSERT INTO ledger.activity_record (id, tenant_id, document_id, document_type, source_id, source_name,
                facility_code, scope, quantity, unit, period, status, origin_event)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending_approval', $12)""",
-            uuid.uuid4(), tenant_id, activity["document_id"], activity["document_type"], activity["source_id"],
+            new_id, tenant_id, activity["document_id"], activity["document_type"], activity["source_id"],
             activity["source_name"], activity["facility_code"], activity["scope"], activity["quantity"],
             activity["unit"], activity["period"], activity["origin_event"])
-        return "created"
+        return "created", str(new_id)
 
 
 async def list_activities(tenant_id: str) -> list[dict]:
@@ -278,3 +280,35 @@ async def lock_period(conn, tenant_id: str, period: str) -> dict:
     await conn.execute("INSERT INTO ledger.period (tenant_id, period) VALUES ($1, $2) ON CONFLICT DO NOTHING", tenant_id, period)
     return dict(await conn.fetchrow(
         "SELECT * FROM ledger.period WHERE tenant_id = $1 AND period = $2 FOR UPDATE", tenant_id, period))
+
+
+async def report_data(tenant_id: str, period: str | None) -> dict:
+    async with tenant_tx(tenant_id) as conn:
+        where, args = ("AND e.period = $2", [tenant_id, period]) if period else ("", [tenant_id])
+        entries = await conn.fetch(
+            f"""SELECT e.*, d.filename, d.sha256 AS document_sha256, d.reviewed_by
+                FROM ledger.emission_entry e
+                JOIN ledger.activity_record a ON a.id = e.activity_id
+                LEFT JOIN intake.document d ON d.id = a.document_id
+                WHERE e.tenant_id = $1 {where} ORDER BY e.period, e.scope, e.source_id""", *args)
+        periods = await conn.fetch("SELECT * FROM ledger.period WHERE tenant_id = $1 ORDER BY period", tenant_id)
+        name = await conn.fetchval("SELECT name FROM core.tenant WHERE id = $1", tenant_id)
+    data = [dict(r) for r in entries]
+    factors = {(e["factor_key"], e["factor_version"]): e for e in data}
+    return {"tenant_name": name or tenant_id, "entries": data, "periods": [dict(p) for p in periods],
+            "factors": list(factors.values())}
+
+
+async def trend(tenant_id: str) -> dict:
+    """Emissions by period and scope, and by facility, for the dashboard."""
+    async with tenant_tx(tenant_id) as conn:
+        by_period = await conn.fetch(
+            "SELECT period, scope, sum(co2e_kg) AS co2e_kg FROM ledger.emission_entry WHERE tenant_id = $1 "
+            "GROUP BY period, scope ORDER BY period", tenant_id)
+        by_facility = await conn.fetch(
+            """SELECT coalesce(f.name, e.facility_code, '-') AS facility, sum(e.co2e_kg) AS co2e_kg
+               FROM ledger.emission_entry e LEFT JOIN core.facility f ON f.tenant_id = e.tenant_id AND f.code = e.facility_code
+               WHERE e.tenant_id = $1 GROUP BY 1 ORDER BY 2 DESC""", tenant_id)
+        pending = await conn.fetchval(
+            "SELECT count(*) FROM ledger.activity_record WHERE tenant_id = $1 AND status = 'pending_approval'", tenant_id)
+    return {"by_period": [dict(r) for r in by_period], "by_facility": [dict(r) for r in by_facility], "pending": pending}

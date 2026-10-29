@@ -333,6 +333,10 @@ def _to_iso_date(value: str) -> str:
     return f"{match[3]}-{int(match[2]):02d}-{int(match[1]):02d}" if match else value
 
 
+def normalise(tenant: TenantConfig, result: Extraction) -> Extraction:
+    return _normalise(tenant, result)
+
+
 def _normalise(tenant: TenantConfig, result: Extraction) -> Extraction:
     """Keeps only fields the tenant configured for the detected type, in config order, with typed values."""
     doc_type = tenant.document_type(result.document_type)
