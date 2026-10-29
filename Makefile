@@ -10,7 +10,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check public-url demo-password
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check public-url demo-password api-check
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -101,6 +101,12 @@ ui-check: ## Browser smoke test of the demo console; screenshots in /tmp/ecotrac
 	docker run --rm --network host -e DEMO_USER_PASSWORD -e EXPECT_SEAL -e CONSOLE_URL=$(or $(PUBLIC_URL),http://localhost:9080) -e SCREENSHOT_DIR=/shots \
 		-v "$(CURDIR)/deploy/compose/demo:/tests:ro" -v /tmp/ecotrace-ui:/shots $(PLAYWRIGHT_IMAGE) \
 		bash -c "pip install -q --root-user-action=ignore playwright==1.64.0 && python /tests/ui-check.py"
+
+NEWMAN_IMAGE := postman/newman:6.1.3-alpine
+api-check: ## Run the Postman collection (docs/api) against the gateway as alice with Newman
+	docker run --rm --network host -v "$(CURDIR):/etc/newman:ro" $(NEWMAN_IMAGE) run docs/api/ecotrace.postman_collection.json \
+		--working-dir /etc/newman --env-var baseUrl=$(or $(PUBLIC_URL),http://localhost:9080) \
+		--env-var username=alice --env-var password="$(DEMO_USER_PASSWORD)"
 
 setup: ## Install the pinned lint and changelog tooling
 	npm ci
