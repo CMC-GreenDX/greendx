@@ -32,12 +32,34 @@ upstreams:
     type: roundrobin
     nodes:
       "keycloak:8080": 1
+  - id: api-docs
+    type: roundrobin
+    nodes:
+      "api-docs:8080": 1
   - id: demo-console
     type: roundrobin
     nodes:
       "demo-console:80": 1
 
 routes:
+  # API reference: the OpenAPI documents and the Swagger UI page are public (they describe the API, they hold no data).
+  # "Try it out" on the page calls the routes below, which still require a token.
+  - id: intake-openapi
+    uri: /intake/openapi.json
+    upstream_id: document-intake
+  - id: ledger-openapi
+    uri: /ledger/openapi.json
+    upstream_id: carbon-ledger
+  - id: workflow-openapi
+    uri: /workflow/openapi.json
+    upstream_id: workflow
+  - id: purchase-openapi
+    uri: /purchase/openapi.json
+    upstream_id: purchase-approval
+  - id: api-docs
+    uris: [/api-docs, /api-docs/*]
+    upstream_id: api-docs
+
   - id: graphql
     uri: /v1/graphql
     upstream_id: hasura

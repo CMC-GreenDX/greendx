@@ -326,6 +326,27 @@ services:
       timeout: 3s
       retries: 10
 
+  # API reference page at /api-docs: one page for the OpenAPI documents of every service.
+  # "Authorize" logs in through Keycloak with the browser client (Authorization Code + PKCE).
+  api-docs:
+    <<: *core
+    image: swaggerapi/swagger-ui:v5.33.3
+    environment:
+      BASE_URL: /api-docs
+      URLS: >-
+        [{"url": "/intake/openapi.json", "name": "Document Intake"},
+        {"url": "/ledger/openapi.json", "name": "Carbon Ledger"},
+        {"url": "/workflow/openapi.json", "name": "Workflow"},
+        {"url": "/purchase/openapi.json", "name": "Purchase Approval"}]
+      OAUTH_CLIENT_ID: ecotrace-portal
+      OAUTH_USE_PKCE: "true"
+      PERSIST_AUTHORIZATION: "true"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api-docs/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
   # Tenant onboarding CLI; run with `make dxctl ARGS="tenant list"`. Not started by `make up`.
   dxctl:
     profiles: [tools]
@@ -372,6 +393,8 @@ services:
       purchase-approval:
         condition: service_started
       demo-console:
+        condition: service_started
+      api-docs:
         condition: service_started
 
 networks:
