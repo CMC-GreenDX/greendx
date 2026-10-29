@@ -18,12 +18,12 @@
           },
           "tables": [
             {
-              "table": { "schema": "demo", "name": "facility" },
+              "table": { "schema": "core", "name": "facility" },
               "select_permissions": [
                 {
                   "role": "user",
                   "permission": {
-                    "columns": ["id", "tenant_id", "name", "kind", "created_at"],
+                    "columns": ["tenant_id", "code", "name", "kind", "province"],
                     "filter": { "tenant_id": { "_eq": "X-Hasura-Tenant-Id" } }
                   }
                 }

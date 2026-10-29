@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecotrace.example/schemas/org.schema.json",
+  "title": "Organisation",
+  "description": "org.yaml: departments, roles and the initial users of a tenant.",
+  "type": "object",
+  "required": ["departments", "users"],
+  "additionalProperties": false,
+  "properties": {
+    "departments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "name": { "type": "string" }
+        }
+      }
+    },
+    "users": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["username", "first_name", "last_name", "email", "roles"],
+        "additionalProperties": false,
+        "properties": {
+          "username": { "type": "string", "pattern": "^[a-z0-9._-]{3,64}$" },
+          "first_name": { "type": "string" },
+          "last_name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "department": { "type": "string" },
+          "roles": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["uploader", "reviewer", "approver", "tenant-admin"] },
+            "minItems": 1
+          },
+          "initial_password_env": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "description": "Environment variable holding a demo password. Without it, dxctl generates one and prints it once."
+          }
+        }
+      }
+    }
+  }
+}
