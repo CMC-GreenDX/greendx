@@ -44,7 +44,10 @@ async def lifespan(_: FastAPI):
     await db.close()
 
 
-app = FastAPI(title="EcoTrace Document Intake", version="0.1.0", lifespan=lifespan)
+# The OpenAPI document sits under the service prefix so the gateway can publish it at /intake/openapi.json;
+# the interactive page is the shared one at /api-docs.
+app = FastAPI(title="EcoTrace Document Intake", version="0.1.0", lifespan=lifespan,
+              openapi_url="/intake/openapi.json", docs_url=None, redoc_url=None)
 
 
 async def _tenant(user: User) -> tenant_config.TenantConfig:

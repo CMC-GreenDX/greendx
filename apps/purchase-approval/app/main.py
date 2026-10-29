@@ -199,7 +199,10 @@ async def lifespan(_: FastAPI):
     await pool.close()
 
 
-app = FastAPI(title="EcoTrace Purchase Approval", version="0.1.0", lifespan=lifespan)
+# The OpenAPI document sits under the service prefix so the gateway can publish it at /purchase/openapi.json;
+# the interactive page is the shared one at /api-docs.
+app = FastAPI(title="EcoTrace Purchase Approval", version="0.1.0", lifespan=lifespan,
+              openapi_url="/purchase/openapi.json", docs_url=None, redoc_url=None)
 
 
 @app.get("/purchase/health", include_in_schema=False)

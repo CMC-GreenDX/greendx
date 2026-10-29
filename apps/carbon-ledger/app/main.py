@@ -43,7 +43,10 @@ async def lifespan(_: FastAPI):
     await db.close()
 
 
-app = FastAPI(title="EcoTrace Carbon Ledger", version="0.1.0", lifespan=lifespan)
+# The OpenAPI document sits under the service prefix so the gateway can publish it at /ledger/openapi.json;
+# the interactive page is the shared one at /api-docs.
+app = FastAPI(title="EcoTrace Carbon Ledger", version="0.1.0", lifespan=lifespan,
+              openapi_url="/ledger/openapi.json", docs_url=None, redoc_url=None)
 
 
 async def _tenant(user: User) -> config.TenantLedgerConfig:
