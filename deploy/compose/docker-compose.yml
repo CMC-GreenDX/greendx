@@ -65,6 +65,8 @@ services:
       # Tokens are issued for the public URL (the gateway serves the login pages on that origin);
       # services inside the network reach Keycloak as keycloak:8080.
       KC_HOSTNAME: ${PUBLIC_URL:-http://localhost:9080}
+      # The admin console is not routed by the gateway; it stays on the private port.
+      KC_HOSTNAME_ADMIN: http://localhost:8080
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_HEALTH_ENABLED: "true"
       KC_LOG_CONSOLE_OUTPUT: json

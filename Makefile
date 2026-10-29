@@ -10,7 +10,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check public-url
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check public-url demo-password
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -52,7 +52,10 @@ dxctl: ## Run the tenant CLI, e.g. make dxctl ARGS="tenant list"
 
 seed: ## Onboard the demo tenants (SEED_TENANTS) from their config packs; safe to repeat
 	@$(DXCTL) portal configure
-	@for t in $(SEED_TENANTS); do $(DXCTL) tenant create tenants/$$t || exit 1; done
+	@for t in $(SEED_TENANTS); do $(DXCTL) tenant create tenants/$$t $(SEED_ARGS) || exit 1; done
+
+demo-password: ## Set every demo user's password again from DEMO_USER_PASSWORD (do this before sharing a public URL)
+	@$(MAKE) --no-print-directory seed SEED_ARGS=--reset-passwords
 
 public-url: ## Print this codespace's public address of the gateway (set it as PUBLIC_URL in .env)
 	@if [ -n "$$CODESPACE_NAME" ]; then echo "https://$$CODESPACE_NAME-9080.$$GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"; \
