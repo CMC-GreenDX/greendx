@@ -39,14 +39,14 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       INTAKE_DB_PASSWORD: ${INTAKE_DB_PASSWORD}
       LEDGER_DB_PASSWORD: ${LEDGER_DB_PASSWORD}
-    command:
-      - sh
-      - -c
-      - >-
-        psql -v ON_ERROR_STOP=1 -v intake_password="$$INTAKE_DB_PASSWORD" -v ledger_password="$$LEDGER_DB_PASSWORD"
-        -f /sql/core.sql
+      TRILLIAN_DB_PASSWORD: ${TRILLIAN_DB_PASSWORD}
+      PURCHASE_DB_PASSWORD: ${PURCHASE_DB_PASSWORD}
+      FLOWABLE_DB_PASSWORD: ${FLOWABLE_DB_PASSWORD}
+    command: ["sh", "/scripts/migrate.sh"]
     volumes:
       - ../../core/data/sql:/sql:ro
+      - ./postgres/migrate.sh:/scripts/migrate.sh:ro
+      - ./trillian/storage.sql:/trillian/storage.sql:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -195,6 +195,120 @@ services:
       nats:
         condition: service_started
 
+  # Verifiable log (ADR-0001): append-only Merkle tree whose signed roots seal closed periods.
+  trillian-log-server:
+    <<: *core
+    image: gcr.io/trillian-opensource-ci/log_server:v1.8.0
+    command:
+      - --storage_system=postgresql
+      - --quota_system=postgresql
+      - --postgresql_uri=postgresql:///trillian?host=postgres&user=trillian&password=${TRILLIAN_DB_PASSWORD}
+      - --rpc_endpoint=0.0.0.0:8090
+      - --http_endpoint=0.0.0.0:8091
+      - --alsologtostderr
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+
+  trillian-log-signer:
+    <<: *core
+    image: gcr.io/trillian-opensource-ci/log_signer:v1.8.0
+    command:
+      - --storage_system=postgresql
+      - --quota_system=postgresql
+      - --postgresql_uri=postgresql:///trillian?host=postgres&user=trillian&password=${TRILLIAN_DB_PASSWORD}
+      - --force_master
+      - --sequencer_interval=200ms
+      - --rpc_endpoint=0.0.0.0:8090
+      - --http_endpoint=0.0.0.0:8091
+      - --alsologtostderr
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+
+  ledger-sealer:
+    <<: *core
+    build: ../../apps/ledger-sealer
+    image: ecotrace/ledger-sealer:dev
+    environment:
+      TRILLIAN_ADDR: trillian-log-server:8090
+    depends_on:
+      trillian-log-server:
+        condition: service_started
+      trillian-log-signer:
+        condition: service_started
+
+  # BPMN engine (ADR-0001). Process definitions come from the tenant config packs, deployed by dxctl.
+  flowable:
+    <<: *core
+    image: flowable/flowable-rest:8.0.0
+    environment:
+      SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flowable
+      SPRING_DATASOURCE_USERNAME: flowable
+      SPRING_DATASOURCE_PASSWORD: ${FLOWABLE_DB_PASSWORD}
+      FLOWABLE_REST_APP_ADMIN_USER-ID: rest-admin
+      FLOWABLE_REST_APP_ADMIN_PASSWORD: ${FLOWABLE_ADMIN_PASSWORD}
+      FLOWABLE_REST_APP_CREATE-DEMO-DEFINITIONS: "false"
+      JAVA_OPTS: -Xms256m -Xmx768m
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+
+  workflow:
+    <<: *core
+    build: ../../capabilities/workflow-ui
+    image: ecotrace/workflow:dev
+    environment:
+      FLOWABLE_URL: http://flowable:8080/flowable-rest/service
+      FLOWABLE_USER: rest-admin
+      FLOWABLE_PASSWORD: ${FLOWABLE_ADMIN_PASSWORD}
+      JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
+      JWT_ISSUER: http://localhost:8080/realms/ecotrace
+      NATS_URL: nats://nats:4222
+    depends_on:
+      flowable:
+        condition: service_started
+      document-intake:
+        condition: service_healthy
+
+  purchase-approval:
+    <<: *core
+    build: ../../apps/purchase-approval
+    image: ecotrace/purchase-approval:dev
+    environment:
+      DATABASE_URL: postgres://purchase_app:${PURCHASE_DB_PASSWORD}@postgres:5432/ecotrace
+      DATABASE_ADMIN_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
+      JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
+      JWT_ISSUER: http://localhost:8080/realms/ecotrace
+      TENANTS_DIR: /config/tenants
+      NATS_URL: nats://nats:4222
+    volumes:
+      - ../../tenants:/config/tenants:ro
+    depends_on:
+      document-intake:
+        condition: service_healthy
+
+  carbon-ledger:
+    <<: *core
+    build: ../../apps/carbon-ledger
+    image: ecotrace/carbon-ledger:dev
+    environment:
+      DATABASE_URL: postgres://ledger_app:${LEDGER_DB_PASSWORD}@postgres:5432/ecotrace
+      DATABASE_ADMIN_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/ecotrace
+      JWKS_URL: http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs
+      JWT_ISSUER: http://localhost:8080/realms/ecotrace
+      TENANTS_DIR: /config/tenants
+      NATS_URL: nats://nats:4222
+      SEALER_URL: http://ledger-sealer:8080
+    volumes:
+      - ../../tenants:/config/tenants:ro
+    depends_on:
+      document-intake:
+        condition: service_healthy
+      ledger-sealer:
+        condition: service_healthy
+
   demo-console:
     <<: *core
     image: nginx:1.30.6-alpine
@@ -223,6 +337,9 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD}
+      FLOWABLE_URL: http://flowable:8080/flowable-rest/service
+      FLOWABLE_USER: rest-admin
+      FLOWABLE_PASSWORD: ${FLOWABLE_ADMIN_PASSWORD}
       SCHEMA_DIR: /schemas
     volumes:
       - ../../tenants:/work/tenants:ro
@@ -243,6 +360,12 @@ services:
       hasura:
         condition: service_started
       document-intake:
+        condition: service_started
+      carbon-ledger:
+        condition: service_started
+      workflow:
+        condition: service_started
+      purchase-approval:
         condition: service_started
       demo-console:
         condition: service_started

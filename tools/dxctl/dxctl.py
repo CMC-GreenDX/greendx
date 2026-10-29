@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import os
 import secrets
@@ -36,6 +37,7 @@ PACK_FILES = {
     "org.yaml": "org.schema.json",
     "document-types.yaml": "document-types.schema.json",
     "emission-sources.yaml": "emission-sources.schema.json",
+    "emission-factors.yaml": "emission-factors.schema.json",
 }
 
 
@@ -91,6 +93,8 @@ def cross_checks(path: Path, pack: dict[str, dict]) -> list[str]:
             errors.append(f"emission-sources.yaml: {source['id']}: {source['document_type']} has no field {source['quantity_field']}")
         if source.get("facility") and source["facility"] not in facilities:
             errors.append(f"emission-sources.yaml: {source['id']}: unknown facility {source['facility']}")
+        if source["factor"] not in pack["emission-factors.yaml"]["factors"]:
+            errors.append(f"emission-sources.yaml: {source['id']}: factor {source['factor']} is not in emission-factors.yaml")
     return errors
 
 
@@ -197,6 +201,39 @@ def ensure_bucket(tenant_id: str) -> str:
         return f"{bucket} (created)"
 
 
+# --- Workflows ----------------------------------------------------------------------------------
+
+def deploy_workflows(path: Path, tenant_id: str) -> list[str]:
+    """Deploys workflows/*.bpmn to Flowable under the tenant id. Unchanged files are not deployed again."""
+    files = sorted((path / "workflows").glob("*.bpmn"))
+    if not files:
+        return ["no workflows in the pack"]
+    base = os.environ.get("FLOWABLE_URL", "http://flowable:8080/flowable-rest/service")
+    auth = ("rest-admin", os.environ.get("FLOWABLE_PASSWORD", ""))
+    for _ in range(60):  # Flowable can still be starting during `make up`
+        try:
+            requests.get(f"{base}/repository/deployments", auth=auth, timeout=5).raise_for_status()
+            break
+        except requests.RequestException:
+            time.sleep(3)
+    lines = []
+    for file in files:
+        content = file.read_bytes()
+        name = f"{file.stem}@{hashlib.sha256(content).hexdigest()[:12]}"
+        found = requests.get(f"{base}/repository/deployments", auth=auth, timeout=15,
+                             params={"tenantId": tenant_id, "name": name}).json().get("data", [])
+        if found:
+            lines.append(f"{file.name}: unchanged ({name})")
+            continue
+        response = requests.post(f"{base}/repository/deployments", auth=auth, timeout=30,
+                                 data={"tenantId": tenant_id, "deploymentName": name},
+                                 files={"file": (file.name, content, "text/xml")})
+        if response.status_code >= 400:
+            raise Failed(f"deploying {file.name}: {response.status_code} {response.text[:300]}")
+        lines.append(f"{file.name}: deployed ({name})")
+    return lines
+
+
 # --- Commands -----------------------------------------------------------------------------------
 
 async def create(path: Path) -> None:
@@ -232,6 +269,8 @@ async def create(path: Path) -> None:
         say("user", f"{user['username']} [{', '.join(user['roles'])}]: {note}")
 
     say("storage", ensure_bucket(tenant_id))
+    for line in deploy_workflows(path, tenant_id):
+        say("workflow", line)
     print(f"Done in {time.perf_counter() - started:.1f} s. Users can log in at the portal now.")
 
 

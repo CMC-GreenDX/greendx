@@ -13,6 +13,7 @@ let tokens = null;
 let me = null;
 let current = null; // document shown in the result card
 let editing = false; // review mode of the result card
+let ledger = null; // { activities, can_approve, summary }
 
 // --- i18n ---------------------------------------------------------------------------------------
 
@@ -249,6 +250,312 @@ function renderAll() {
   renderPipeline(current?.pipeline || null);
   renderResult();
   renderDocuments().catch(() => {});
+  renderLedger();
+}
+
+// --- Carbon Ledger ------------------------------------------------------------------------------
+
+const tonnes = (kg) => new Intl.NumberFormat(lang === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 2 }).format((kg || 0) / 1000);
+const qty = (v, unit) => `${numberFormat().format(Number(v))} ${unit}`;
+
+async function loadLedger() {
+  try {
+    const activities = await (await api('/ledger/activities')).json();
+    const period = $('ledger-period').value || '';
+    const summary = await (await api(`/ledger/summary${period ? `?period=${period}` : ''}`)).json();
+    ledger = { ...activities, summary };
+  } catch (err) {
+    ledger = null; // module disabled for this tenant, or not reachable
+  }
+  renderLedger();
+}
+
+function renderLedger() {
+  $('ledger-card').hidden = !ledger;
+  if (!ledger) return;
+  const { summary } = ledger;
+  const select = $('ledger-period');
+  const chosen = select.value;
+  select.replaceChildren(h('option', { value: '' }, t('ledger.allPeriods')),
+    ...summary.periods.map((p) => h('option', { value: p.period }, `${p.period}${p.status === 'closed' ? ' 🔒' : ''}`)));
+  select.value = chosen;
+  $('kpi-scope1').textContent = tonnes(summary.scope1_kg);
+  $('kpi-scope2').textContent = tonnes(summary.scope2_kg);
+  $('kpi-total').textContent = tonnes(summary.scope1_kg + summary.scope2_kg);
+  renderSeal();
+
+  const pending = ledger.activities.filter((a) => a.status !== 'approved');
+  $('pending-body').replaceChildren(...(pending.length ? pending.map((a) => h('tr', {},
+    h('td', {}, a.filename || a.document_id),
+    h('td', {}, `${a.source_name} · ${t('ledger.scopeN', { n: a.scope })}`),
+    h('td', {}, qty(a.quantity, a.unit), h('small', { class: 'muted' }, ` · ${a.period}`)),
+    h('td', {}, h('span', { class: `badge badge-${a.status}` }, t(`ledger.status.${a.status}`))),
+    h('td', {}, a.status === 'pending_approval' && ledger.can_approve
+      ? [h('button', { class: 'primary small', onclick: () => decide(a.id, 'approve') }, t('ledger.approve')), ' ',
+        h('button', { class: 'link', onclick: () => decide(a.id, 'reject') }, t('ledger.reject'))]
+      : a.status === 'pending_approval' ? h('small', { class: 'muted' }, t(ledger.workflow ? 'ledger.inWorkflow' : 'ledger.waitingApprover')) : (a.reject_reason || '')),
+  )) : [h('tr', {}, h('td', { colspan: 5, class: 'muted' }, t('ledger.nonePending')))]));
+
+  $('entries-body').replaceChildren(...(summary.entries.length ? summary.entries.map((e) => h('tr', { class: 'clickable', onclick: () => showLineage(e.id) },
+    h('td', {}, e.period),
+    h('td', {}, `${e.source_id} · ${t('ledger.scopeN', { n: e.scope })}`),
+    h('td', {}, qty(e.quantity, e.unit)),
+    h('td', {}, h('strong', {}, tonnes(e.co2e_kg)), ' tCO₂e'),
+  )) : [h('tr', {}, h('td', { colspan: 4, class: 'muted' }, t('ledger.noEntries')))]));
+}
+
+function renderSeal() {
+  const period = $('ledger-period').value;
+  const info = ledger.summary.periods.find((p) => p.period === period);
+  $('seal-panel').hidden = !info;
+  if (!info) { $('verify-result').hidden = true; return; }
+  const closed = info.status === 'closed';
+  $('seal-title').textContent = closed ? t('seal.closed', { period }) : t('seal.open', { period });
+  $('seal-detail').textContent = closed
+    ? t('seal.detail', { count: info.entry_count, index: info.leaf_index, size: info.tree_size, root: (info.root_hash || '').slice(0, 16), user: info.closed_by })
+    : t('seal.openHint');
+  $('seal-close').hidden = closed || !ledger.can_close;
+  $('seal-verify').hidden = !closed;
+}
+
+async function closePeriod() {
+  const period = $('ledger-period').value;
+  if (!period || !confirm(t('seal.confirm', { period }))) return;
+  try {
+    await api(`/ledger/periods/${period}/close`, { method: 'POST' });
+    toast(t('seal.sealed', { period }));
+  } catch (err) {
+    toast(err.message);
+  }
+  loadLedger();
+}
+
+async function verifyPeriod() {
+  const period = $('ledger-period').value;
+  const box = $('verify-result');
+  try {
+    const r = await (await api(`/ledger/periods/${period}/verify`)).json();
+    const problems = [...r.changed.map((e) => [t('seal.changed'), e]), ...r.removed.map((e) => [t('seal.removed'), e]), ...r.added.map((e) => [t('seal.added'), e])];
+    box.className = `verify-result ${r.valid ? 'ok' : 'bad'}`;
+    box.replaceChildren(
+      h('strong', {}, r.valid ? t('seal.valid', { count: r.entry_count }) : t('seal.invalid')),
+      h('small', { class: 'muted' }, ` · ${t('seal.logInfo', { index: r.leaf_index, size: r.tree_size, root: r.root_hash.slice(0, 16) })}`),
+      problems.length ? h('ul', {}, ...problems.map(([kind, e]) => h('li', {}, `${kind}: ${e.filename || e.entry_id} (${e.source_id || ''}${e.co2e_kg !== undefined ? `, ${tonnes(e.co2e_kg)} tCO₂e ${t('seal.now')}` : ''})`))) : '');
+  } catch (err) {
+    box.className = 'verify-result bad';
+    box.textContent = err.message;
+  }
+  box.hidden = false;
+}
+
+// --- Dashboard (real-time via Server-Sent Events) -------------------------------------------------
+
+const SVG = 'http://www.w3.org/2000/svg';
+const s = (tag, attrs = {}, text) => {
+  const el = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (text !== undefined) el.textContent = text;
+  return el;
+};
+const niceMax = (v) => { if (v <= 0) return 1; const p = 10 ** Math.floor(Math.log10(v)); return Math.ceil(v / p) * p; };
+// A bar with only its data end rounded (4px), anchored square on the baseline.
+const roundedTop = (x, y, w, h, r) => (h <= 0 ? '' : `M${x},${y + h}V${y + Math.min(r, h)}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + Math.min(r, h)}V${y + h}Z`);
+
+function tooltip(evt, lines) {
+  const tip = $('chart-tooltip');
+  if (!lines) { tip.hidden = true; return; }
+  tip.replaceChildren(...lines.map((l, i) => (i === 0 ? h('strong', {}, l) : h('div', {}, l))));
+  tip.style.left = `${evt.clientX + 14}px`;
+  tip.style.top = `${evt.clientY + 14}px`;
+  tip.hidden = false;
+}
+
+async function loadDashboard() {
+  let trend;
+  try { trend = await (await api('/ledger/trend')).json(); } catch { $('dashboard-card').hidden = true; return; }
+  $('dashboard-card').hidden = false;
+  const periods = [...new Set(trend.by_period.map((r) => r.period))].sort();
+  const rows = periods.map((p) => {
+    const kg = (scope) => trend.by_period.filter((r) => r.period === p && r.scope === scope).reduce((a, r) => a + r.co2e_kg, 0);
+    return { period: p, s1: kg(1) / 1000, s2: kg(2) / 1000 };
+  });
+  renderPeriodChart(rows);
+  renderFacilityChart(trend.by_facility);
+}
+
+function renderPeriodChart(rows) {
+  const W = 640, H = 240, m = { t: 22, r: 12, b: 28, l: 52 };
+  const max = niceMax(Math.max(0, ...rows.map((r) => r.s1 + r.s2)));
+  const y = (v) => m.t + (H - m.t - m.b) * (1 - v / max);
+  const band = (W - m.l - m.r) / Math.max(rows.length, 1);
+  const bw = Math.min(44, band * 0.5);
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': t('dash.byPeriod') });
+  for (let i = 0; i <= 4; i++) {
+    const v = (max / 4) * i;
+    svg.append(s('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: 'var(--grid)', 'stroke-width': 1 }));
+    svg.append(s('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, tonnes(v * 1000)));
+  }
+  if (!rows.length) svg.append(s('text', { x: W / 2, y: H / 2, 'text-anchor': 'middle' }, t('ledger.noEntries')));
+  rows.forEach((r, i) => {
+    const x = m.l + band * i + (band - bw) / 2;
+    const segs = [[1, r.s1, 'var(--series-1)'], [2, r.s2, 'var(--series-2)']].filter(([, v]) => v > 0);
+    let base = 0;
+    segs.forEach(([scope, v, color], k) => {
+      const top = y(base + v), bottom = y(base);
+      const gap = k > 0 ? 2 : 0; // 2px surface gap between stacked segments
+      const hgt = Math.max(bottom - top - gap, 1);
+      const isTop = k === segs.length - 1;
+      const shape = isTop ? s('path', { d: roundedTop(x, top, bw, hgt, 4), fill: color, class: 'bar' })
+        : s('rect', { x, y: top, width: bw, height: hgt, fill: color, class: 'bar' });
+      const lines = [r.period, `${t(`ledger.scope${scope}`)}: ${tonnes(v * 1000)} tCO₂e`];
+      shape.addEventListener('mousemove', (e) => tooltip(e, lines));
+      shape.addEventListener('mouseleave', () => tooltip(null));
+      svg.append(shape);
+      base += v;
+    });
+    svg.append(s('text', { x: x + bw / 2, y: y(base) - 6, 'text-anchor': 'middle', class: 'total' }, tonnes((r.s1 + r.s2) * 1000)));
+    svg.append(s('text', { x: x + bw / 2, y: H - m.b + 16, 'text-anchor': 'middle' }, r.period));
+  });
+  $('chart-period').replaceChildren(svg);
+  $('chart-period-table').replaceChildren(
+    h('thead', {}, h('tr', {}, h('th', {}, t('ledger.period')), h('th', {}, t('ledger.scope1')), h('th', {}, t('ledger.scope2')), h('th', {}, t('ledger.total')))),
+    h('tbody', {}, ...rows.map((r) => h('tr', {}, h('td', {}, r.period), h('td', {}, tonnes(r.s1 * 1000)), h('td', {}, tonnes(r.s2 * 1000)), h('td', {}, tonnes((r.s1 + r.s2) * 1000))))));
+}
+
+function renderFacilityChart(facilities) {
+  const max = Math.max(1, ...facilities.map((f) => f.co2e_kg));
+  $('chart-facility').replaceChildren(...(facilities.length ? facilities.map((f) => h('div', { class: 'hbar' },
+    h('span', {}, f.facility), h('strong', {}, `${tonnes(f.co2e_kg)} tCO₂e`),
+    h('div', { class: 'track' }, h('div', { class: 'fill', style: `width:${(100 * f.co2e_kg) / max}%` })))) : [h('p', { class: 'muted' }, t('ledger.noEntries'))]));
+}
+
+async function connectLive() {
+  // EventSource cannot send the Authorization header, so the SSE stream is read with fetch.
+  const setLive = (on) => { $('live-badge').classList.toggle('on', on); $('live-text').textContent = t(on ? 'dash.live' : 'dash.offline'); };
+  setLive(false);
+  try {
+    const res = await fetch('/ledger/stream', { headers: { Authorization: `Bearer ${await accessToken()}` } });
+    if (!res.ok) throw new Error(res.status);
+    setLive(true);
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      let cut;
+      while ((cut = buffer.indexOf('\n\n')) >= 0) {
+        const chunk = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
+        if (chunk.includes('event: ledger')) {
+          toast(t('dash.updated'));
+          loadDashboard(); loadLedger(); loadInbox();
+        }
+      }
+    }
+  } catch { /* fall through to reconnect */ }
+  setLive(false);
+  setTimeout(connectLive, 3000);
+}
+
+// --- Workflow inbox and purchase approval -------------------------------------------------------
+
+async function loadInbox() {
+  let tasks = [];
+  try { tasks = (await (await api('/workflow/tasks')).json()).tasks; } catch { /* workflow not reachable */ }
+  const time = new Intl.DateTimeFormat(lang === 'vi' ? 'vi-VN' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' });
+  $('inbox-list').replaceChildren(...(tasks.length ? tasks.map((task) => h('li', {},
+    h('div', {},
+      h('strong', {}, task.name),
+      h('small', {}, `${t(`inbox.process.${task.process_key}`)} · ${task.summary || task.title || ''}`),
+      h('small', {}, `${time.format(new Date(task.created))}${task.decisions.length ? ` · ${task.decisions.map((d) => `${d.step}: ${d.by} ✓`).join(' · ')}` : ''}`)),
+    h('div', { class: 'result-actions' },
+      task.document_id ? h('button', { class: 'link', onclick: () => showDocument(task.document_id) }, t('inbox.open')) : '',
+      h('button', { class: 'primary small', onclick: () => completeTask(task, true) }, t('ledger.approve')),
+      h('button', { class: 'link', onclick: () => completeTask(task, false) }, t('ledger.reject'))),
+  )) : [h('li', { class: 'muted' }, t('inbox.empty'))]));
+}
+
+async function completeTask(task, approved) {
+  let comment = '';
+  if (!approved) {
+    comment = prompt(t('ledger.rejectReason')) || '';
+    if (!comment) return;
+  }
+  try {
+    const r = await (await api(`/workflow/tasks/${task.id}/complete`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approved, comment }),
+    })).json();
+    toast(r.process_finished ? t('inbox.finished') : t('inbox.nextStep'));
+  } catch (err) {
+    toast(err.message);
+  }
+  loadInbox();
+  setTimeout(() => { loadLedger(); loadPurchases(); }, 1500);
+}
+
+async function loadPurchases() {
+  let requests = null;
+  try { requests = (await (await api('/purchase/requests')).json()).requests; } catch { /* module disabled */ }
+  $('purchase-card').hidden = !requests;
+  if (!requests) return;
+  const vnd = new Intl.NumberFormat(lang === 'vi' ? 'vi-VN' : 'en-US');
+  $('purchase-body').replaceChildren(...(requests.length ? requests.map((r) => h('tr', {},
+    h('td', {}, r.filename || r.invoice_number || r.document_id),
+    h('td', {}, r.supplier || '—'),
+    h('td', {}, r.total_vnd ? `${vnd.format(Number(r.total_vnd))} VND` : '—'),
+    h('td', {}, h('span', { class: `badge badge-${r.status}` }, t(`purchase.status.${r.status}`)), r.decided_by ? h('small', { class: 'muted' }, ` ${r.decided_by}`) : ''),
+  )) : [h('tr', {}, h('td', { colspan: 4, class: 'muted' }, t('purchase.empty')))]));
+}
+
+async function exportReport(format) {
+  const period = $('ledger-period').value;
+  try {
+    const res = await api(`/ledger/report?format=${format}${period ? `&period=${period}` : ''}`);
+    const url = URL.createObjectURL(await res.blob());
+    const link = h('a', { href: url, download: `ecotrace-${me.tenant_id}-${period || 'all'}.${format}` });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+async function decide(id, action) {
+  let body;
+  if (action === 'reject') {
+    const reason = prompt(t('ledger.rejectReason'));
+    if (!reason) return;
+    body = JSON.stringify({ reason });
+  }
+  try {
+    await api(`/ledger/activities/${id}/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+    toast(t(action === 'approve' ? 'ledger.approved' : 'ledger.rejected'));
+  } catch (err) {
+    toast(err.message);
+  }
+  loadLedger();
+}
+
+async function showLineage(entryId) {
+  const l = await (await api(`/ledger/entries/${entryId}/lineage`)).json();
+  const when = (v) => (v ? new Date(v).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-GB') : '');
+  const steps = [
+    [t('lineage.document'), `${l.document.filename}`, `${t('lineage.uploadedBy', { user: l.document.uploaded_by, time: when(l.document.created_at) })} · ${l.document.extractor} · SHA-256 ${l.document.sha256.slice(0, 12)}…`,
+      h('button', { class: 'secondary small', onclick: () => viewOriginal(l.document) }, t('action.viewOriginal'))],
+    [t('lineage.review'), l.document.reviewed_by ? t('review.by', { user: l.document.reviewed_by, time: when(l.document.reviewed_at) }) : t('lineage.autoAccepted'),
+      l.corrections.length ? l.corrections.map((c) => `${c.name}: ${c.old_value ?? '—'} → ${c.new_value ?? '—'} (${c.reviewed_by})`).join('; ') : t('lineage.noCorrections')],
+    [t('lineage.activity'), `${qty(l.activity.quantity, l.activity.unit)} · ${l.activity.source_name}`, `${t('ledger.scopeN', { n: l.activity.scope })} · ${l.activity.facility_code || ''} · ${t('ledger.period')} ${l.activity.period}`],
+    [t('lineage.approval'), t('lineage.approvedBy', { user: l.activity.decided_by, time: when(l.activity.decided_at) }), ''],
+    [t('lineage.factor'), `${l.entry.factor_value} ${l.entry.factor_unit} · ${l.entry.factor_version}`, l.entry.factor_source,
+      l.entry.factor_status === 'provisional' ? h('small', { class: 'warn' }, t('lineage.provisional')) : ''],
+    [t('lineage.entry'), `${tonnes(l.entry.co2e_kg)} tCO₂e`, `${qty(l.entry.quantity, l.entry.unit)} × ${l.entry.factor_value} = ${numberFormat().format(l.entry.co2e_kg)} kg`],
+    [t('lineage.period'), `${l.period.period} · ${t(`ledger.periodStatus.${l.period.status}`)}`, l.period.closed_by ? `${l.period.closed_by}, ${when(l.period.closed_at)}` : ''],
+  ];
+  $('lineage-body').replaceChildren(...steps.map(([title, main, detail, extra]) => h('li', {}, h('small', {}, title), h('strong', {}, main), h('small', {}, detail || ''), extra || '')));
+  $('lineage').showModal();
 }
 
 // --- Actions ------------------------------------------------------------------------------------
@@ -265,6 +572,7 @@ async function upload(file) {
     renderPipeline(current.pipeline);
     renderResult();
     renderDocuments();
+    setTimeout(() => { loadLedger(); loadInbox(); loadPurchases(); }, 2500); // apps consume the events asynchronously
   } catch (err) {
     renderPipeline(null);
     if (err.status === 409 && err.body?.duplicate_of) {
@@ -288,6 +596,7 @@ async function saveReview() {
     renderResult();
     renderDocuments();
     toast(t('review.saved'));
+    setTimeout(() => { loadLedger(); loadInbox(); loadPurchases(); }, 2500);
   } catch (err) {
     toast(t('error.review', { message: err.message }));
   }
@@ -306,9 +615,8 @@ async function showDocument(id) {
   $('result-card').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function viewOriginal() {
-  if (!current) return;
-  const { document: doc } = current;
+async function viewOriginal(doc = current?.document) {
+  if (!doc) return;
   const url = URL.createObjectURL(await (await api(`/intake/documents/${doc.id}/file`)).blob());
   $('viewer-title').textContent = doc.filename;
   $('viewer-body').replaceChildren(doc.content_type === 'application/pdf'
@@ -328,10 +636,16 @@ function wireEvents() {
   zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('over'));
   zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('over'); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
-  $('view-original').addEventListener('click', viewOriginal);
+  $('view-original').addEventListener('click', () => viewOriginal());
   $('review-start').addEventListener('click', () => { editing = true; renderResult(); });
   $('review-cancel').addEventListener('click', () => { editing = false; renderResult(); });
   $('review-save').addEventListener('click', saveReview);
+  $('ledger-period').addEventListener('change', () => { $('verify-result').hidden = true; loadLedger(); });
+  $('seal-close').addEventListener('click', closePeriod);
+  $('export-xlsx').addEventListener('click', () => exportReport('xlsx'));
+  $('export-csv').addEventListener('click', () => exportReport('csv'));
+  $('seal-verify').addEventListener('click', verifyPeriod);
+  $('lineage-close').addEventListener('click', () => $('lineage').close());
   $('viewer-close').addEventListener('click', () => $('viewer').close());
 }
 
@@ -355,6 +669,11 @@ async function start() {
   $('app-view').hidden = false;
   renderAll();
   renderFacilities().catch(() => {});
+  loadLedger();
+  loadInbox();
+  loadPurchases();
+  loadDashboard();
+  connectLive();
 }
 
 start();

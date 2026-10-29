@@ -38,4 +38,7 @@ out=$(sql company-a-steel "INSERT INTO intake.document (id, tenant_id, filename,
 n=$(sql company-a-steel "WITH changed AS (UPDATE intake.document SET status = 'tampered' WHERE tenant_id = 'company-b-logistics' RETURNING 1) SELECT count(*) FROM changed")
 [ "$n" = 0 ] && pass "as Company A, updating Company B's documents changes nothing (0 rows)" || fail "cross-tenant update changed '$n' rows"
 
+ledger=$(docker compose --env-file .env -f deploy/compose/docker-compose.yml exec -T -e PGPASSWORD="$LEDGER_DB_PASSWORD" postgres   psql -h 127.0.0.1 -U ledger_app -d ecotrace -qtAX -c "BEGIN" -c "SELECT set_config('app.tenant_id', 'company-b-logistics', true)"   -c "SELECT count(*) FROM ledger.emission_entry WHERE tenant_id = 'company-a-steel'" -c "ROLLBACK" 2>&1 | grep -E '^[0-9]+$' | tail -1)
+[ "$ledger" = 0 ] && pass "ledger_app as Company B cannot read Company A's emission entries" || fail "ledger_app read '$ledger' of Company A's entries"
+
 [ "$failed" -eq 0 ] && printf '\033[32mAll RLS checks passed.\033[0m\n' || { printf '\033[31mSome RLS checks failed.\033[0m\n'; exit 1; }
