@@ -1,0 +1,14 @@
+# Document types that Document Intake accepts for this tenant.
+review_threshold: 0.9
+
+document_types:
+  - id: electricity_bill
+    label: {vi: Hoá đơn tiền điện, en: Electricity bill}
+    description: Monthly electricity bill for the kiln and grinding lines.
+    keywords: [kwh, tiền điện, điện năng, công tơ]
+    fields:
+      - {name: customer_code, label: {vi: Mã khách hàng, en: Customer code}, type: string, pattern: 'Mã khách hàng[:\s]+([A-Z0-9]+)'}
+      - {name: period_start, label: {vi: Từ ngày, en: Period start}, type: date, pattern: 'Kỳ hoá đơn[:\s]+([0-9/]+)'}
+      - {name: period_end, label: {vi: Đến ngày, en: Period end}, type: date, pattern: 'Kỳ hoá đơn[:\s]+[0-9/]+\s*-\s*([0-9/]+)'}
+      - {name: consumption_kwh, label: {vi: Điện năng tiêu thụ, en: Consumption}, type: number, unit: kWh, pattern: 'Điện năng tiêu thụ[:\s]+([0-9.,]+)\s*kWh'}
+      - {name: total_amount_vnd, label: {vi: Tổng tiền thanh toán, en: Total amount}, type: number, unit: VND, pattern: 'Tổng tiền thanh toán[:\s]+([0-9.,]+)'}

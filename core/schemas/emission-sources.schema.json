@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecotrace.example/schemas/emission-sources.schema.json",
+  "title": "Emission sources",
+  "description": "emission-sources.yaml: facilities of a tenant and the emission sources that turn approved documents into activity data.",
+  "type": "object",
+  "required": ["facilities", "sources"],
+  "additionalProperties": false,
+  "properties": {
+    "facilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["code", "name", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "name": { "type": "string" },
+          "kind": { "type": "string" },
+          "province": { "type": "string" }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "scope", "document_type", "quantity_field", "activity_unit", "factor"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "name": { "type": "string" },
+          "scope": { "type": "integer", "enum": [1, 2] },
+          "facility": { "type": "string", "description": "Facility code; omit when it is resolved from the document (match)." },
+          "document_type": { "type": "string", "description": "Document type that feeds this source." },
+          "quantity_field": { "type": "string", "description": "Extracted field holding the activity quantity." },
+          "activity_unit": { "type": "string", "enum": ["kWh", "L", "kg", "t", "m3"] },
+          "factor": { "type": "string", "description": "Key in emission-factors.yaml." },
+          "match": {
+            "type": "object",
+            "description": "Extra conditions on extracted fields, e.g. a customer code or fuel type.",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

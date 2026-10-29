@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecotrace.example/schemas/emission-factors.schema.json",
+  "title": "Emission factors",
+  "description": "emission-factors.yaml: factor values with version and source, referenced by emission-sources.yaml.",
+  "type": "object",
+  "required": ["factors"],
+  "additionalProperties": false,
+  "properties": {
+    "factors": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[a-z0-9-]+$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "value", "unit", "gas", "version", "source"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": "number", "exclusiveMinimum": 0 },
+          "unit": { "type": "string", "enum": ["kgCO2e/kWh", "kgCO2e/L", "kgCO2/L", "kgCO2e/kg", "kgCO2e/t", "kgCO2e/m3"] },
+          "gas": { "type": "string", "enum": ["CO2", "CO2e"] },
+          "version": { "type": "string", "description": "Changes whenever the value changes; stored with every emission entry." },
+          "source": { "type": "string", "description": "Citation of the published value or the derivation." },
+          "status": { "type": "string", "enum": ["official", "provisional"], "default": "official" }
+        }
+      }
+    }
+  }
+}

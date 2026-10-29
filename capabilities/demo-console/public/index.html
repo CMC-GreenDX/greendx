@@ -42,7 +42,7 @@
         <article class="card">
           <h2 data-i18n="upload.title"></h2>
           <label class="dropzone" id="dropzone">
-            <input type="file" id="file-input" accept="application/pdf,image/png,image/jpeg,image/webp" hidden>
+            <input type="file" id="file-input" accept="application/pdf,image/png,image/jpeg,image/webp,.xml,application/xml,text/xml" hidden>
             <span data-i18n="upload.drop"></span>
           </label>
           <h3 data-i18n="samples.title"></h3>
@@ -64,6 +64,11 @@
           <div class="result-actions">
             <span class="badge" id="result-status"></span>
             <button class="secondary" id="view-original" data-i18n="action.viewOriginal"></button>
+            <button class="primary" id="review-start" data-i18n="review.start" hidden></button>
+            <span id="review-actions" hidden>
+              <button class="primary" id="review-save" data-i18n="review.save"></button>
+              <button class="link" id="review-cancel" data-i18n="review.cancel"></button>
+            </span>
           </div>
         </div>
         <table class="fields">
@@ -76,7 +81,120 @@
           </thead>
           <tbody id="fields-body"></tbody>
         </table>
+        <p class="muted" id="result-reviewed" hidden></p>
         <p class="notes" id="result-notes" hidden></p>
+        <div id="review-history" hidden>
+          <h3 data-i18n="review.history"></h3>
+          <ul class="history" id="review-history-list"></ul>
+        </div>
+      </article>
+
+      <article class="card" id="dashboard-card" hidden>
+        <div class="result-head">
+          <div>
+            <h2 data-i18n="dash.title"></h2>
+            <p class="muted" data-i18n="dash.body"></p>
+          </div>
+          <span class="live" id="live-badge"><span class="live-dot"></span><span id="live-text"></span></span>
+        </div>
+        <div class="dash-grid">
+          <figure class="chart">
+            <figcaption>
+              <strong data-i18n="dash.byPeriod"></strong>
+              <span class="legend">
+                <span><i class="swatch s1"></i><span data-i18n="ledger.scope1"></span></span>
+                <span><i class="swatch s2"></i><span data-i18n="ledger.scope2"></span></span>
+              </span>
+            </figcaption>
+            <div class="chart-wrap" id="chart-period"></div>
+            <details>
+              <summary data-i18n="dash.table"></summary>
+              <table class="list" id="chart-period-table"></table>
+            </details>
+          </figure>
+          <figure class="chart">
+            <figcaption><strong data-i18n="dash.byFacility"></strong></figcaption>
+            <div id="chart-facility"></div>
+          </figure>
+        </div>
+        <div class="chart-tooltip" id="chart-tooltip" hidden></div>
+      </article>
+
+      <article class="card" id="inbox-card">
+        <h2 data-i18n="inbox.title"></h2>
+        <p class="muted" data-i18n="inbox.body"></p>
+        <ul class="tasks" id="inbox-list"></ul>
+      </article>
+
+      <article class="card" id="ledger-card" hidden>
+        <div class="result-head">
+          <div>
+            <h2 data-i18n="ledger.title"></h2>
+            <p class="muted" data-i18n="ledger.body"></p>
+          </div>
+          <div class="result-actions">
+            <label class="period-select"><span data-i18n="ledger.period"></span> <select id="ledger-period"></select></label>
+            <button class="secondary small" id="export-xlsx" data-i18n="ledger.exportXlsx"></button>
+            <button class="link" id="export-csv" data-i18n="ledger.exportCsv"></button>
+          </div>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><small data-i18n="ledger.scope1"></small><strong id="kpi-scope1">–</strong><span>tCO₂e</span></div>
+          <div class="kpi"><small data-i18n="ledger.scope2"></small><strong id="kpi-scope2">–</strong><span>tCO₂e</span></div>
+          <div class="kpi kpi-total"><small data-i18n="ledger.total"></small><strong id="kpi-total">–</strong><span>tCO₂e</span></div>
+        </div>
+        <div class="seal" id="seal-panel" hidden>
+          <div>
+            <strong id="seal-title"></strong>
+            <small class="muted" id="seal-detail"></small>
+          </div>
+          <div class="result-actions">
+            <button class="primary" id="seal-close" data-i18n="seal.close" hidden></button>
+            <button class="secondary" id="seal-verify" data-i18n="seal.verify" hidden></button>
+          </div>
+        </div>
+        <div class="verify-result" id="verify-result" hidden></div>
+        <h3 data-i18n="ledger.pending"></h3>
+        <table class="list">
+          <thead>
+            <tr>
+              <th data-i18n="ledger.document"></th>
+              <th data-i18n="ledger.source"></th>
+              <th data-i18n="ledger.quantity"></th>
+              <th data-i18n="documents.status"></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="pending-body"></tbody>
+        </table>
+        <h3 data-i18n="ledger.entries"></h3>
+        <table class="list">
+          <thead>
+            <tr>
+              <th data-i18n="ledger.period"></th>
+              <th data-i18n="ledger.source"></th>
+              <th data-i18n="ledger.quantity"></th>
+              <th data-i18n="ledger.emissions"></th>
+            </tr>
+          </thead>
+          <tbody id="entries-body"></tbody>
+        </table>
+      </article>
+
+      <article class="card" id="purchase-card" hidden>
+        <h2 data-i18n="purchase.title"></h2>
+        <p class="muted" data-i18n="purchase.body"></p>
+        <table class="list">
+          <thead>
+            <tr>
+              <th data-i18n="ledger.document"></th>
+              <th data-i18n="purchase.supplier"></th>
+              <th data-i18n="purchase.total"></th>
+              <th data-i18n="documents.status"></th>
+            </tr>
+          </thead>
+          <tbody id="purchase-body"></tbody>
+        </table>
       </article>
 
       <div class="grid">
@@ -110,6 +228,14 @@
       <button class="link" id="viewer-close" data-i18n="action.close"></button>
     </div>
     <div class="viewer-body" id="viewer-body"></div>
+  </dialog>
+
+  <dialog id="lineage">
+    <div class="viewer-head">
+      <strong data-i18n="lineage.title"></strong>
+      <button class="link" id="lineage-close" data-i18n="action.close"></button>
+    </div>
+    <ol class="lineage" id="lineage-body"></ol>
   </dialog>
 
   <div class="toast" id="toast" hidden></div>

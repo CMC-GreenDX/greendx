@@ -1,0 +1,13 @@
+# Facilities and the emission sources fed by approved documents (used by Carbon Ledger).
+facilities:
+  - {code: ha-nam-kiln, name: Ha Nam kiln line, kind: plant, province: Hà Nam}
+
+sources:
+  - id: grid-electricity-ha-nam
+    name: Grid electricity, Ha Nam kiln line
+    scope: 2
+    facility: ha-nam-kiln
+    document_type: electricity_bill
+    quantity_field: consumption_kwh
+    activity_unit: kWh
+    factor: vn-grid-electricity

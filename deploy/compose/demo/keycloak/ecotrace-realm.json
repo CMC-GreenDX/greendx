@@ -81,47 +81,5 @@
         }
       ]
     }
-  ],
-  "users": [
-    {
-      "username": "alice",
-      "enabled": true,
-      "email": "alice@company-a.example",
-      "emailVerified": true,
-      "firstName": "Alice",
-      "lastName": "Nguyen",
-      "attributes": {
-        "tenant_id": [
-          "company-a-steel"
-        ]
-      },
-      "credentials": [
-        {
-          "type": "password",
-          "value": "${DEMO_USER_PASSWORD}",
-          "temporary": false
-        }
-      ]
-    },
-    {
-      "username": "bob",
-      "enabled": true,
-      "email": "bob@company-b.example",
-      "emailVerified": true,
-      "firstName": "Bob",
-      "lastName": "Tran",
-      "attributes": {
-        "tenant_id": [
-          "company-b-logistics"
-        ]
-      },
-      "credentials": [
-        {
-          "type": "password",
-          "value": "${DEMO_USER_PASSWORD}",
-          "temporary": false
-        }
-      ]
-    }
   ]
 }

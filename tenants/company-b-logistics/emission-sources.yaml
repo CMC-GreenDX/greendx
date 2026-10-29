@@ -1,0 +1,24 @@
+# Facilities and the emission sources fed by approved documents (used by Carbon Ledger).
+facilities:
+  - {code: binh-duong-warehouse, name: Binh Duong warehouse, kind: warehouse, province: Bình Dương}
+  - {code: da-nang-truck-depot, name: Da Nang truck depot, kind: depot, province: Đà Nẵng}
+  - {code: fleet, name: Truck fleet, kind: vehicle fleet}
+
+sources:
+  - id: truck-diesel
+    name: Diesel for trucks
+    scope: 1
+    facility: fleet
+    document_type: fuel_slip
+    quantity_field: quantity_liters
+    activity_unit: L
+    factor: diesel-mobile
+
+  - id: grid-electricity-binh-duong
+    name: Grid electricity, Binh Duong warehouse
+    scope: 2
+    facility: binh-duong-warehouse
+    document_type: electricity_bill
+    quantity_field: consumption_kwh
+    activity_unit: kWh
+    factor: vn-grid-electricity

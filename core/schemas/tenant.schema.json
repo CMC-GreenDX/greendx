@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecotrace.example/schemas/tenant.schema.json",
+  "title": "Tenant",
+  "description": "tenant.yaml: identity of a company and the modules enabled for it.",
+  "type": "object",
+  "required": ["id", "name", "locale", "modules"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+      "description": "Stable tenant id; must equal the config pack folder name."
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "locale": { "type": "string", "enum": ["vi", "en"] },
+    "modules": {
+      "type": "object",
+      "description": "Tier 3 apps enabled for this tenant.",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "branding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "primary_color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+      }
+    }
+  }
+}

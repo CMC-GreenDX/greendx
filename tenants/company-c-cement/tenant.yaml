@@ -1,0 +1,7 @@
+# Tenant config pack: Company C (cement). Onboarded live with `make dxctl ARGS="tenant create tenants/company-c-cement"`.
+id: company-c-cement
+name: Company C Cement (sample)
+locale: vi
+modules:
+  carbon-ledger: true
+  purchase-approval: true
