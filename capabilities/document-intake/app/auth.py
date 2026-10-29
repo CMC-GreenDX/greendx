@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import jwt
 from fastapi import HTTPException, Security, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OpenIdConnect
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2AuthorizationCodeBearer
 
 JWKS_URL = os.environ.get("JWKS_URL", "http://keycloak:8080/realms/ecotrace/protocol/openid-connect/certs")
 ISSUER = os.environ.get("JWT_ISSUER", "http://localhost:8080/realms/ecotrace")
@@ -17,8 +17,9 @@ _jwks = jwt.PyJWKClient(JWKS_URL, cache_keys=True, lifespan=300)
 # Both schemes read the same Authorization header. They are declared so that the OpenAPI document
 # (and the /api-docs page) offers both ways in: log in with Keycloak, or paste an access token.
 _token = HTTPBearer(auto_error=False, scheme_name="accessToken", description="Keycloak access token of the ecotrace realm")
-_login = OpenIdConnect(openIdConnectUrl=f"{ISSUER}/.well-known/openid-configuration", auto_error=False,
-                       scheme_name="keycloak", description="Log in with Keycloak (client ecotrace-portal, PKCE)")
+_login = OAuth2AuthorizationCodeBearer(authorizationUrl=f"{ISSUER}/protocol/openid-connect/auth",
+                                       tokenUrl=f"{ISSUER}/protocol/openid-connect/token", auto_error=False,
+                                       scheme_name="keycloak", description="Log in with Keycloak (client ecotrace-portal, PKCE)")
 
 
 @dataclass(frozen=True)

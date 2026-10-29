@@ -70,7 +70,7 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/ledger/activities")
+@app.get("/ledger/activities", summary="List activities waiting for or past approval")
 async def activities(user: User = Depends(current_user)) -> dict:
     tenant = await _tenant(user)
     return {"activities": [_json(a) for a in await db.list_activities(user.tenant_id)],
@@ -78,7 +78,7 @@ async def activities(user: User = Depends(current_user)) -> dict:
             "can_close": "approver" in user.roles}
 
 
-@app.post("/ledger/activities/{activity_id}/approve")
+@app.post("/ledger/activities/{activity_id}/approve", summary="Approve an activity into an emission entry (approver)")
 async def approve(activity_id: uuid.UUID, user: User = Depends(current_user)) -> dict:
     tenant = await _tenant(user)
     user.require("approver")
@@ -107,7 +107,7 @@ class Rejection(BaseModel):
     reason: str
 
 
-@app.post("/ledger/activities/{activity_id}/reject")
+@app.post("/ledger/activities/{activity_id}/reject", summary="Reject an activity (approver)")
 async def reject(activity_id: uuid.UUID, body: Rejection, user: User = Depends(current_user)) -> dict:
     await _tenant(user)
     user.require("approver")
@@ -116,7 +116,7 @@ async def reject(activity_id: uuid.UUID, body: Rejection, user: User = Depends(c
     return {"status": "rejected"}
 
 
-@app.get("/ledger/summary")
+@app.get("/ledger/summary", summary="Scope 1 and 2 totals, entries and periods")
 async def summary(period: str | None = None, user: User = Depends(current_user)) -> dict:
     await _tenant(user)
     data = await db.summary(user.tenant_id, period)
@@ -130,7 +130,7 @@ async def summary(period: str | None = None, user: User = Depends(current_user))
     }
 
 
-@app.get("/ledger/entries/{entry_id}/lineage")
+@app.get("/ledger/entries/{entry_id}/lineage", summary="Lineage of an emission entry back to its source document")
 async def lineage(entry_id: uuid.UUID, user: User = Depends(current_user)) -> dict:
     await _tenant(user)
     found = await db.lineage(user.tenant_id, entry_id)
@@ -142,7 +142,7 @@ async def lineage(entry_id: uuid.UUID, user: User = Depends(current_user)) -> di
 _PERIOD = r"^\d{4}-(0[1-9]|1[0-2])$"
 
 
-@app.post("/ledger/periods/{period}/close")
+@app.post("/ledger/periods/{period}/close", summary="Close a period and seal it in the Trillian log (approver)")
 async def close_period(period: str, user: User = Depends(current_user)) -> dict:
     """Locks the period and seals the digest of its entries in the tenant's Trillian log."""
     await _tenant(user)
@@ -160,7 +160,7 @@ async def close_period(period: str, user: User = Depends(current_user)) -> dict:
     return result
 
 
-@app.get("/ledger/periods/{period}/verify")
+@app.get("/ledger/periods/{period}/verify", summary="Verify a sealed period against the Trillian log")
 async def verify_period(period: str, user: User = Depends(current_user)) -> dict:
     """Recomputes the period from the database and checks it against the leaf sealed in Trillian."""
     await _tenant(user)
@@ -175,7 +175,7 @@ async def verify_period(period: str, user: User = Depends(current_user)) -> dict
     return _json(result)
 
 
-@app.get("/ledger/report")
+@app.get("/ledger/report", summary="Export the inventory report (XLSX or CSV)")
 async def export_report(period: str | None = None, format: str = "xlsx", user: User = Depends(current_user)) -> Response:
     """Inventory report of a period (or all periods) as XLSX or CSV, with lineage columns and factors used."""
     await _tenant(user)
@@ -193,13 +193,13 @@ async def export_report(period: str | None = None, format: str = "xlsx", user: U
                     headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'})
 
 
-@app.get("/ledger/trend")
+@app.get("/ledger/trend", summary="Emissions by period, scope and facility")
 async def trend(user: User = Depends(current_user)) -> dict:
     await _tenant(user)
     return _json(await db.trend(user.tenant_id))
 
 
-@app.get("/ledger/stream")
+@app.get("/ledger/stream", summary="Live ledger changes (Server-Sent Events)")
 async def stream(user: User = Depends(current_user)) -> StreamingResponse:
     """Server-Sent Events: one message whenever the tenant's ledger changes, so dashboards update in real time."""
     await _tenant(user)

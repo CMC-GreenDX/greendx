@@ -210,7 +210,7 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/purchase/requests")
+@app.get("/purchase/requests", summary="List purchase requests created from invoices")
 async def requests_list(user: User = Depends(current_user)) -> dict:
     if not enabled(user.tenant_id):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "The purchase-approval module is not enabled for this tenant")
