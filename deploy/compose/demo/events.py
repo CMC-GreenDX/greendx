@@ -12,19 +12,20 @@ import nats
 
 STREAM = "ECOTRACE_EVENTS"
 EVENTS = ["document.received", "document.extracted"]
+OPTIONAL = ["document.reviewed"]
 
 
 async def main(tenant: str, document_id: str | None) -> int:
     nc = await nats.connect("nats://nats:4222")
     js = nc.jetstream()
     ok = True
-    for event in EVENTS:
+    for event in EVENTS + OPTIONAL:
         subject = f"tenant.{tenant}.{event}"
         try:
             msg = await js.get_last_msg(STREAM, subject)
         except nats.js.errors.NotFoundError:
             print(f"{subject}: no event")
-            ok = False
+            ok = ok and event in OPTIONAL
             continue
         envelope = json.loads(msg.data)
         data = envelope["data"]
@@ -35,7 +36,7 @@ async def main(tenant: str, document_id: str | None) -> int:
         if "fields" in data:
             summary["fields"] = {f["name"]: f["value"] for f in data["fields"]}
         print("  data: " + json.dumps(summary, ensure_ascii=False))
-        if document_id and data.get("document_id") != document_id:
+        if document_id and event in EVENTS and data.get("document_id") != document_id:
             ok = False
     await nc.close()
     return 0 if ok else 1

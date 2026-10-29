@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecotrace.example/schemas/document-types.schema.json",
+  "title": "Document types",
+  "description": "document-types.yaml: documents that Document Intake accepts for a tenant and the fields to extract.",
+  "type": "object",
+  "required": ["review_threshold", "document_types"],
+  "additionalProperties": false,
+  "$defs": {
+    "label": {
+      "type": "object",
+      "required": ["vi", "en"],
+      "additionalProperties": false,
+      "properties": { "vi": { "type": "string" }, "en": { "type": "string" } }
+    }
+  },
+  "properties": {
+    "review_threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+    "document_types": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "description", "fields"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "label": { "$ref": "#/$defs/label" },
+          "description": { "type": "string" },
+          "keywords": { "type": "array", "items": { "type": "string" } },
+          "fields": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["name", "label", "type"],
+              "additionalProperties": false,
+              "properties": {
+                "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+                "label": { "$ref": "#/$defs/label" },
+                "type": { "type": "string", "enum": ["string", "number", "date"] },
+                "unit": { "type": "string" },
+                "pattern": { "type": "string", "description": "Regular expression for the rule-based fallback; first group is the value." }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

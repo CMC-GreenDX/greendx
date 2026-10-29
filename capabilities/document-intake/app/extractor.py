@@ -307,6 +307,10 @@ def _extract_with_rules(tenant: TenantConfig, content: bytes, content_type: str)
 
 # --- Normalisation ------------------------------------------------------------------------------
 
+def normalise_number(value: str) -> str | None:
+    return _to_number(value)
+
+
 def _to_number(value: str) -> str | None:
     cleaned = re.sub(r"[^\d.,-]", "", value)
     if not cleaned:
@@ -327,6 +331,10 @@ def _to_number(value: str) -> str | None:
 def _to_iso_date(value: str) -> str:
     match = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{4})", value.strip())
     return f"{match[3]}-{int(match[2]):02d}-{int(match[1]):02d}" if match else value
+
+
+def normalise(tenant: TenantConfig, result: Extraction) -> Extraction:
+    return _normalise(tenant, result)
 
 
 def _normalise(tenant: TenantConfig, result: Extraction) -> Extraction:
