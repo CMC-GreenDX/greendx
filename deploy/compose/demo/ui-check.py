@@ -147,7 +147,8 @@ with sync_playwright() as p:
     popup.fill("#password", PASSWORD)
     popup.click("#kc-login")
     popup.wait_for_event("close", timeout=20_000)
-    check("Logout" in modal.inner_text(), "API reference page logs in through Keycloak (PKCE)")
+    expect(modal).to_contain_text("Logout", timeout=10_000)
+    check(True, "API reference page logs in through Keycloak (PKCE)")
     modal.locator("button.btn-done").first.click()
     op = docs.locator(".opblock-get").filter(has=docs.locator(".opblock-summary-path[data-path='/intake/documents']")).first
     op.locator(".opblock-summary").click()
