@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from fastapi.responses import Response
 
-from . import db, events, extractor, scanner, storage, tenant_config
+from . import db, einvoice, events, extractor, scanner, storage, tenant_config
 from .auth import User, current_user
 
 
@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.INFO, handlers=[_handler])
 log = logging.getLogger("intake")
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-ACCEPTED_TYPES = {"application/pdf", "image/png", "image/jpeg", "image/webp"}
+ACCEPTED_TYPES = {"application/pdf", "image/png", "image/jpeg", "image/webp", "application/xml", "text/xml"}
 
 
 @asynccontextmanager
@@ -47,7 +47,12 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="EcoTrace Document Intake", version="0.1.0", lifespan=lifespan)
 
 
-def _tenant(user: User) -> tenant_config.TenantConfig:
+async def _tenant(user: User) -> tenant_config.TenantConfig:
+    """The caller's tenant, only if it was onboarded with dxctl and is not disabled."""
+    tenant_status = await db.tenant_status(user.tenant_id)
+    if tenant_status != "active":
+        raise HTTPException(status.HTTP_403_FORBIDDEN,
+                            f"Tenant {user.tenant_id} is {'disabled' if tenant_status else 'not onboarded'}")
     try:
         return tenant_config.load(user.tenant_id)
     except tenant_config.TenantNotConfigured as exc:
@@ -95,7 +100,7 @@ async def health() -> dict:
 
 @app.get("/intake/me")
 async def me(user: User = Depends(current_user)) -> dict:
-    tenant = _tenant(user)
+    tenant = await _tenant(user)
     return {
         "username": user.username,
         "tenant_id": tenant.tenant_id,
@@ -108,7 +113,7 @@ async def me(user: User = Depends(current_user)) -> dict:
 
 @app.post("/intake/documents", status_code=status.HTTP_201_CREATED)
 async def upload(file: UploadFile, user: User = Depends(current_user)) -> dict:
-    tenant = _tenant(user)
+    tenant = await _tenant(user)
     trace_id = uuid.uuid4().hex
     pipeline: list[dict] = [{"step": "gateway", "status": "ok", "detail": f"{user.username} @ {user.tenant_id}"}]
 
@@ -158,7 +163,16 @@ async def upload(file: UploadFile, user: User = Depends(current_user)) -> dict:
     })
 
     started = time.perf_counter()
-    result = await extractor.extract(tenant, content, content_type)
+    if content_type in ("application/xml", "text/xml") and einvoice.looks_like_einvoice(content):
+        # E-invoices carry their values as data: exact, free, no AI call.
+        try:
+            result = extractor.normalise(tenant, einvoice.read(tenant, content))
+        except einvoice.NotAnEInvoice as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Not a valid e-invoice: {exc}") from exc
+    elif content_type in ("application/xml", "text/xml"):
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Only e-invoice XML (HDon) is accepted")
+    else:
+        result = await extractor.extract(tenant, content, content_type)
     ai_ms = round((time.perf_counter() - started) * 1000)
     pipeline.append({"step": "classify", "status": "ok" if result.document_type != extractor.UNKNOWN else "warning",
                      "detail": f"{result.document_type} ({result.type_confidence:.0%})", "ms": ai_ms})
@@ -203,7 +217,7 @@ async def upload(file: UploadFile, user: User = Depends(current_user)) -> dict:
 
 @app.get("/intake/documents")
 async def list_documents(user: User = Depends(current_user)) -> dict:
-    tenant = _tenant(user)
+    tenant = await _tenant(user)
     docs = await db.list_documents(tenant.tenant_id)
     return {"documents": [
         {**_document_view(d, [], tenant)["document"]} for d in docs
@@ -212,7 +226,7 @@ async def list_documents(user: User = Depends(current_user)) -> dict:
 
 @app.get("/intake/documents/{document_id}")
 async def get_document(document_id: uuid.UUID, user: User = Depends(current_user)) -> dict:
-    tenant = _tenant(user)
+    tenant = await _tenant(user)
     found = await db.get_document(tenant.tenant_id, document_id)
     if found is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
@@ -232,7 +246,7 @@ class Review(BaseModel):
 @app.post("/intake/documents/{document_id}/review")
 async def review(document_id: uuid.UUID, body: Review, user: User = Depends(current_user)) -> dict:
     """Corrects values and confirms the document. Values not sent are confirmed as they are."""
-    tenant = _tenant(user)
+    tenant = await _tenant(user)
     found = await db.get_document(tenant.tenant_id, document_id)
     if found is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
@@ -270,6 +284,7 @@ async def review(document_id: uuid.UUID, body: Review, user: User = Depends(curr
 
 @app.get("/intake/documents/{document_id}/file")
 async def get_file(document_id: uuid.UUID, user: User = Depends(current_user)) -> Response:
+    await _tenant(user)
     found = await db.get_document(user.tenant_id, document_id)
     if found is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")

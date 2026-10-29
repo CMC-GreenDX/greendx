@@ -1,0 +1,25 @@
+# Facilities and the emission sources fed by approved documents (used by Carbon Ledger).
+facilities:
+  - {code: hai-phong-rolling-mill, name: Hai Phong rolling mill, kind: plant, province: Hải Phòng}
+  - {code: ba-ria-furnace, name: Ba Ria electric furnace, kind: plant, province: Bà Rịa – Vũng Tàu}
+  - {code: hai-phong-main-meter, name: Hai Phong main meter, kind: electricity meter, province: Hải Phòng}
+
+sources:
+  - id: grid-electricity-hai-phong
+    name: Grid electricity, Hai Phong rolling mill
+    scope: 2
+    facility: hai-phong-rolling-mill
+    document_type: electricity_bill
+    quantity_field: consumption_kwh
+    activity_unit: kWh
+    factor: vn-grid-electricity
+    match: {customer_code: PA01HP0012345}
+
+  - id: forklift-diesel
+    name: Diesel for forklifts (issued from the fuel store)
+    scope: 1
+    facility: hai-phong-rolling-mill
+    document_type: warehouse_issue_slip
+    quantity_field: quantity
+    activity_unit: L
+    factor: diesel-mobile

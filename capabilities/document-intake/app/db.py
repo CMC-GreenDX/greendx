@@ -1,13 +1,22 @@
-"""PostgreSQL access. Every query is scoped by tenant_id; row-level security is added in Phase 2."""
+"""PostgreSQL access with row-level security.
+
+Migrations run once at startup as the schema owner (DATABASE_ADMIN_URL). Requests run as `intake_app`, a role
+that cannot bypass RLS, and every transaction first sets app.tenant_id: PostgreSQL itself then hides other
+tenants' rows, even if a query forgets its tenant filter.
+"""
 
 from __future__ import annotations
 
 import os
 import uuid
+from contextlib import asynccontextmanager
 
 import asyncpg
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgres://postgres@postgres:5432/ecotrace")
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgres://intake_app@postgres:5432/ecotrace")
+DATABASE_ADMIN_URL = os.environ.get("DATABASE_ADMIN_URL", "")
+
+_TABLES = ["intake.document", "intake.extraction_field", "intake.field_review"]
 
 SCHEMA = """
 CREATE SCHEMA IF NOT EXISTS intake;
@@ -59,6 +68,22 @@ CREATE TABLE IF NOT EXISTS intake.field_review (
     reviewed_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS field_review_document_idx ON intake.field_review (document_id);
+
+GRANT USAGE ON SCHEMA intake TO intake_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA intake TO intake_app;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA intake TO intake_app;
+-- Carbon Ledger reads reviewed documents and their fields (lineage).
+GRANT USAGE ON SCHEMA intake TO ledger_app, purchase_app;
+GRANT SELECT ON ALL TABLES IN SCHEMA intake TO ledger_app, purchase_app;
+"""
+
+_RLS = """
+ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE {table} FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON {table};
+CREATE POLICY tenant_isolation ON {table}
+    USING (tenant_id = current_setting('app.tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
 """
 
 pool: asyncpg.Pool | None = None
@@ -66,9 +91,13 @@ pool: asyncpg.Pool | None = None
 
 async def connect() -> None:
     global pool
+    if DATABASE_ADMIN_URL:
+        admin = await asyncpg.connect(DATABASE_ADMIN_URL)
+        try:
+            await admin.execute(SCHEMA + "".join(_RLS.format(table=t) for t in _TABLES))
+        finally:
+            await admin.close()
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
-    async with pool.acquire() as conn:
-        await conn.execute(SCHEMA)
 
 
 async def close() -> None:
@@ -76,8 +105,21 @@ async def close() -> None:
         await pool.close()
 
 
-async def insert_document(doc: dict, fields: list[dict]) -> None:
+@asynccontextmanager
+async def tenant_tx(tenant_id: str):
+    """A transaction in which PostgreSQL only shows and accepts rows of this tenant."""
     async with pool.acquire() as conn, conn.transaction():
+        await conn.execute("SELECT set_config('app.tenant_id', $1, true)", tenant_id)
+        yield conn
+
+
+async def tenant_status(tenant_id: str) -> str | None:
+    async with tenant_tx(tenant_id) as conn:
+        return await conn.fetchval("SELECT status FROM core.tenant WHERE id = $1", tenant_id)
+
+
+async def insert_document(doc: dict, fields: list[dict]) -> None:
+    async with tenant_tx(doc["tenant_id"]) as conn:
         await conn.execute(
             """
             INSERT INTO intake.document (id, tenant_id, filename, content_type, size_bytes, sha256, storage_path,
@@ -98,41 +140,44 @@ async def insert_document(doc: dict, fields: list[dict]) -> None:
 
 
 async def list_documents(tenant_id: str, limit: int = 50) -> list[dict]:
-    rows = await pool.fetch(
-        """
-        SELECT id, filename, content_type, size_bytes, status, document_type, type_confidence, extractor,
-               uploaded_by, created_at
-        FROM intake.document WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT $2
-        """,
-        tenant_id, limit,
-    )
+    async with tenant_tx(tenant_id) as conn:
+        rows = await conn.fetch(
+            """
+            SELECT id, filename, content_type, size_bytes, status, document_type, type_confidence, extractor,
+                   uploaded_by, created_at, reviewed_by, reviewed_at
+            FROM intake.document WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT $2
+            """,
+            tenant_id, limit,
+        )
     return [dict(r) for r in rows]
 
 
 async def get_document(tenant_id: str, document_id: uuid.UUID) -> tuple[dict, list[dict]] | None:
-    doc = await pool.fetchrow("SELECT * FROM intake.document WHERE tenant_id = $1 AND id = $2", tenant_id, document_id)
-    if doc is None:
-        return None
-    fields = await pool.fetch(
-        "SELECT name, value, unit, confidence FROM intake.extraction_field "
-        "WHERE tenant_id = $1 AND document_id = $2 ORDER BY position",
-        tenant_id, document_id,
-    )
+    async with tenant_tx(tenant_id) as conn:
+        doc = await conn.fetchrow("SELECT * FROM intake.document WHERE tenant_id = $1 AND id = $2", tenant_id, document_id)
+        if doc is None:
+            return None
+        fields = await conn.fetch(
+            "SELECT name, value, unit, confidence FROM intake.extraction_field "
+            "WHERE tenant_id = $1 AND document_id = $2 ORDER BY position",
+            tenant_id, document_id,
+        )
     return dict(doc), [dict(f) for f in fields]
 
 
 async def find_by_sha256(tenant_id: str, sha256: str) -> dict | None:
-    row = await pool.fetchrow(
-        "SELECT id, filename, created_at, uploaded_by FROM intake.document "
-        "WHERE tenant_id = $1 AND sha256 = $2 ORDER BY created_at LIMIT 1",
-        tenant_id, sha256,
-    )
+    async with tenant_tx(tenant_id) as conn:
+        row = await conn.fetchrow(
+            "SELECT id, filename, created_at, uploaded_by FROM intake.document "
+            "WHERE tenant_id = $1 AND sha256 = $2 ORDER BY created_at LIMIT 1",
+            tenant_id, sha256,
+        )
     return dict(row) if row else None
 
 
 async def review_document(tenant_id: str, document_id: uuid.UUID, reviewer: str, values: dict[str, str | None]) -> bool:
     """Applies corrected values, records each change and marks the document reviewed. False if not found."""
-    async with pool.acquire() as conn, conn.transaction():
+    async with tenant_tx(tenant_id) as conn:
         doc = await conn.fetchrow(
             "SELECT id FROM intake.document WHERE tenant_id = $1 AND id = $2 FOR UPDATE", tenant_id, document_id)
         if doc is None:
@@ -156,7 +201,8 @@ async def review_document(tenant_id: str, document_id: uuid.UUID, reviewer: str,
 
 
 async def list_reviews(tenant_id: str, document_id: uuid.UUID) -> list[dict]:
-    rows = await pool.fetch(
-        "SELECT name, old_value, new_value, reviewed_by, reviewed_at FROM intake.field_review "
-        "WHERE tenant_id = $1 AND document_id = $2 ORDER BY reviewed_at, id", tenant_id, document_id)
+    async with tenant_tx(tenant_id) as conn:
+        rows = await conn.fetch(
+            "SELECT name, old_value, new_value, reviewed_by, reviewed_at FROM intake.field_review "
+            "WHERE tenant_id = $1 AND document_id = $2 ORDER BY reviewed_at, id", tenant_id, document_id)
     return [dict(r) for r in rows]

@@ -7,7 +7,7 @@ GATEWAY_URL=${GATEWAY_URL:-http://localhost:9080}
 KEYCLOAK_URL=${KEYCLOAK_URL:-http://localhost:8080}
 : "${DEMO_USER_PASSWORD:?DEMO_USER_PASSWORD is not set; run through 'make demo'}"
 
-QUERY='{"query":"{ demo_facility(order_by: {name: asc}) { tenant_id name kind } }"}'
+QUERY='{"query":"{ core_facility(order_by: {name: asc}) { tenant_id name kind } }"}'
 failed=0
 
 title() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
@@ -54,8 +54,8 @@ for user in alice bob; do
   code=$(graphql -H "Authorization: Bearer $token")
   echo "HTTP $code"
   jq . /tmp/ecotrace-demo-body
-  others=$(jq --arg t "$tenant" '[.data.demo_facility[]? | select(.tenant_id != $t)] | length' /tmp/ecotrace-demo-body)
-  rows=$(jq '[.data.demo_facility[]?] | length' /tmp/ecotrace-demo-body)
+  others=$(jq --arg t "$tenant" '[.data.core_facility[]? | select(.tenant_id != $t)] | length' /tmp/ecotrace-demo-body)
+  rows=$(jq '[.data.core_facility[]?] | length' /tmp/ecotrace-demo-body)
   if [ "$code" = 200 ] && [ "$rows" -gt 0 ] && [ "$others" = 0 ]; then
     pass "$user sees only $tenant data ($rows rows)"
   else
