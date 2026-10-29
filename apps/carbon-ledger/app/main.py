@@ -10,9 +10,10 @@ import uuid
 from contextlib import asynccontextmanager, suppress
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
-from . import config, consumer, db, seal
+from . import config, consumer, db, live, report, seal
 from .auth import User, current_user
 
 
@@ -93,6 +94,7 @@ async def approve(activity_id: uuid.UUID, user: User = Depends(current_user)) ->
         raise HTTPException(status.HTTP_409_CONFLICT, "Activity is not pending approval") from exc
     except db.PeriodClosed as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, f"Period {exc} is closed") from exc
+    live.notify(user.tenant_id, "entry", status="approved")
     log.info("activity approved", extra={"context": {"tenant_id": user.tenant_id, "activity_id": str(activity_id),
                                                      "user": user.username, "co2e_kg": str(result["co2e_kg"])}})
     return _json(result)
@@ -168,3 +170,35 @@ async def verify_period(period: str, user: User = Depends(current_user)) -> dict
                                                                   "changed": result["changed"], "removed": result["removed"],
                                                                   "added": result["added"]}})
     return _json(result)
+
+
+@app.get("/ledger/report")
+async def export_report(period: str | None = None, format: str = "xlsx", user: User = Depends(current_user)) -> Response:
+    """Inventory report of a period (or all periods) as XLSX or CSV, with lineage columns and factors used."""
+    await _tenant(user)
+    if period and not re.match(_PERIOD, period):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Period must be YYYY-MM")
+    data = await db.report_data(user.tenant_id, period)
+    name = f"ecotrace-{user.tenant_id}-{period or 'all'}"
+    if format == "csv":
+        return Response(report.csv_bytes(data["entries"]), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="{name}.csv"'})
+    if format != "xlsx":
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "format must be xlsx or csv")
+    content = report.xlsx(data["tenant_name"], period, data["entries"], data["periods"], data["factors"])
+    return Response(content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'})
+
+
+@app.get("/ledger/trend")
+async def trend(user: User = Depends(current_user)) -> dict:
+    await _tenant(user)
+    return _json(await db.trend(user.tenant_id))
+
+
+@app.get("/ledger/stream")
+async def stream(user: User = Depends(current_user)) -> StreamingResponse:
+    """Server-Sent Events: one message whenever the tenant's ledger changes, so dashboards update in real time."""
+    await _tenant(user)
+    return StreamingResponse(live.stream(user.tenant_id), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

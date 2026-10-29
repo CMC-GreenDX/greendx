@@ -23,6 +23,9 @@ Tables live in the `ledger` schema with row-level security. The service connects
 | `POST /ledger/activities/{id}/reject` | Approver only. Body `{"reason": "..."}` |
 | `GET /ledger/summary?period=YYYY-MM` | Scope 1 and 2 totals, totals per source, entries and periods |
 | `GET /ledger/entries/{id}/lineage` | Where a figure comes from |
+| `GET /ledger/trend` | Emissions by period and scope, and by facility (dashboard) |
+| `GET /ledger/stream` | Server-Sent Events: one message per ledger change of the tenant (approval, rejection, seal), so dashboards update live |
+| `GET /ledger/report?period=YYYY-MM&format=xlsx\|csv` | Bilingual inventory report: Scope 1 and 2 totals and seal status, every entry with its source document, SHA-256, factor version, reviewer and approver, and the factors used |
 
 ## Period close and seal
 

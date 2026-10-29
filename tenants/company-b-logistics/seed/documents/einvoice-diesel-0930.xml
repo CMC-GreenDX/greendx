@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- TÀI LIỆU MẪU – KHÔNG CÓ GIÁ TRỊ THANH TOÁN. Fictional e-invoice in the GDT XML layout (Circular 78/2021), unsigned. -->
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.1.0</PBan>
+      <THDon>HÓA ĐƠN GIÁ TRỊ GIA TĂNG</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>C26TXD</KHHDon>
+      <SHDon>4417</SHDon>
+      <NLap>2026-09-30</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>Chuyển khoản</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY XĂNG DẦU MẪU MIỀN TRUNG</Ten>
+        <MST>0400000033</MST>
+        <DChi>Quận mẫu, Đà Nẵng</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY LOGISTICS MẪU B</Ten>
+        <MST>0500000022</MST>
+        <DChi>Bãi xe Đà Nẵng</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <THHDVu>Dầu diesel DO 0,05S-II (bơm vào bồn chứa của bãi xe)</THHDVu>
+          <DVTinh>lít</DVTinh>
+          <SLuong>1200</SLuong>
+          <DGia>18318.18</DGia>
+          <ThTien>21981818</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <TgTCThue>21981818</TgTCThue>
+        <TgTThue>2198182</TgTThue>
+        <TgTTTBSo>24180000</TgTTTBSo>
+        <TgTTTBChu>Hai mươi bốn triệu một trăm tám mươi nghìn đồng</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

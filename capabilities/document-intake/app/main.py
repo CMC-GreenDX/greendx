@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from fastapi.responses import Response
 
-from . import db, events, extractor, scanner, storage, tenant_config
+from . import db, einvoice, events, extractor, scanner, storage, tenant_config
 from .auth import User, current_user
 
 
@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.INFO, handlers=[_handler])
 log = logging.getLogger("intake")
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-ACCEPTED_TYPES = {"application/pdf", "image/png", "image/jpeg", "image/webp"}
+ACCEPTED_TYPES = {"application/pdf", "image/png", "image/jpeg", "image/webp", "application/xml", "text/xml"}
 
 
 @asynccontextmanager
@@ -163,7 +163,16 @@ async def upload(file: UploadFile, user: User = Depends(current_user)) -> dict:
     })
 
     started = time.perf_counter()
-    result = await extractor.extract(tenant, content, content_type)
+    if content_type in ("application/xml", "text/xml") and einvoice.looks_like_einvoice(content):
+        # E-invoices carry their values as data: exact, free, no AI call.
+        try:
+            result = extractor.normalise(tenant, einvoice.read(tenant, content))
+        except einvoice.NotAnEInvoice as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Not a valid e-invoice: {exc}") from exc
+    elif content_type in ("application/xml", "text/xml"):
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Only e-invoice XML (HDon) is accepted")
+    else:
+        result = await extractor.extract(tenant, content, content_type)
     ai_ms = round((time.perf_counter() - started) * 1000)
     pipeline.append({"step": "classify", "status": "ok" if result.document_type != extractor.UNKNOWN else "warning",
                      "detail": f"{result.document_type} ({result.type_confidence:.0%})", "ms": ai_ms})

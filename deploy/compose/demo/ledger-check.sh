@@ -62,6 +62,12 @@ lineage=$(api "$alice" "/ledger/entries/$entry_id/lineage")
 [ "$(jq -r .entry.factor_version <<<"$lineage")" = vn-grid-2024-study ] && pass "factor version and citation stored with the entry ($(jq -r .entry.factor_status <<<"$lineage"))" \
   || fail "factor: $(jq -c .entry.factor_version <<<"$lineage")"
 
+curl -sS "$GATEWAY_URL/ledger/report?period=2026-09&format=xlsx" -H "Authorization: Bearer $alice" -o /tmp/ecotrace-report.xlsx
+sheets=$(python3 -c "import zipfile,re; print(','.join(re.findall(r'name=\"([^\"]+)\"', zipfile.ZipFile('/tmp/ecotrace-report.xlsx').read('xl/workbook.xml').decode())))" 2>&1)
+[[ "$sheets" == *"Chi tiết - Entries"* ]] && pass "XLSX inventory report exported (sheets: $sheets)" || fail "xlsx export: $sheets"
+csv=$(curl -sS "$GATEWAY_URL/ledger/report?period=2026-09&format=csv" -H "Authorization: Bearer $alice")
+grep -q "electricity-bill-2026-09.pdf" <<<"$csv" && grep -q "128.573" <<<"$csv" && pass "CSV export lists the entry with its source document and 128.573 tCO2e" || fail "csv export: $(head -c 300 <<<"$csv")"
+
 invoice=$(upload_and_confirm "$alice" "$SAMPLES/purchase-invoice-0007.pdf")
 sleep 3
 [ -z "$(api "$alice" /ledger/activities | jq -r --arg d "$invoice" '.activities[] | select(.document_id == $d) | .id')" ] \
