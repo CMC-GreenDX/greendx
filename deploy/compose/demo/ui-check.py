@@ -26,6 +26,9 @@ def check(ok: bool, message: str) -> None:
 
 def login(page: Page, user: str) -> None:
     page.goto(BASE)
+    # A public codespace port first shows GitHub's warning page once per browser session.
+    if "github.dev" in BASE and page.locator("#login").count() == 0:
+        page.get_by_role("button", name="Continue", exact=True).first.click()
     page.click("#login")
     page.fill("#username", user)
     page.fill("#password", PASSWORD)

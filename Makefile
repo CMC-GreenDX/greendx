@@ -10,7 +10,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check public-url demo-password
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -51,7 +51,17 @@ dxctl: ## Run the tenant CLI, e.g. make dxctl ARGS="tenant list"
 	@$(DXCTL) $(ARGS)
 
 seed: ## Onboard the demo tenants (SEED_TENANTS) from their config packs; safe to repeat
-	@for t in $(SEED_TENANTS); do $(DXCTL) tenant create tenants/$$t || exit 1; done
+	@$(DXCTL) portal configure
+	@for t in $(SEED_TENANTS); do $(DXCTL) tenant create tenants/$$t $(SEED_ARGS) || exit 1; done
+
+demo-password: ## Set every demo user's password again from DEMO_USER_PASSWORD (do this before sharing a public URL)
+	@$(MAKE) --no-print-directory seed SEED_ARGS=--reset-passwords
+
+public-url: ## Print this codespace's public address of the gateway (set it as PUBLIC_URL in .env)
+	@# ssh sessions into a codespace do not get its variables; read them from the shared file instead.
+	@name=$${CODESPACE_NAME:-$$(jq -r '.CODESPACE_NAME // empty' /workspaces/.codespaces/shared/environment-variables.json 2>/dev/null)}; \
+	if [ -n "$$name" ]; then echo "https://$$name-9080.$${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}"; \
+	else echo "Not in a codespace: PUBLIC_URL is the address users type, e.g. https://ecotrace.example.org"; fi
 
 onboarding-check: ## Brief acceptance test: onboard company-c-cement from config only, log in, upload, disable
 	@bash deploy/compose/demo/onboarding-check.sh
@@ -88,7 +98,7 @@ events: ## Show the latest document events of TENANT (default company-a-steel) f
 PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright/python:v1.64.0-noble
 ui-check: ## Browser smoke test of the demo console; screenshots in /tmp/ecotrace-ui
 	@mkdir -p /tmp/ecotrace-ui
-	docker run --rm --network host -e DEMO_USER_PASSWORD -e EXPECT_SEAL -e SCREENSHOT_DIR=/shots \
+	docker run --rm --network host -e DEMO_USER_PASSWORD -e EXPECT_SEAL -e CONSOLE_URL=$(or $(PUBLIC_URL),http://localhost:9080) -e SCREENSHOT_DIR=/shots \
 		-v "$(CURDIR)/deploy/compose/demo:/tests:ro" -v /tmp/ecotrace-ui:/shots $(PLAYWRIGHT_IMAGE) \
 		bash -c "pip install -q --root-user-action=ignore playwright==1.64.0 && python /tests/ui-check.py"
 

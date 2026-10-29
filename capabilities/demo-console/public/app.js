@@ -1,7 +1,8 @@
 // EcoTrace demo console: Keycloak login (Authorization Code + PKCE), document upload and results.
 // Every API call goes through the gateway on the same origin and carries the access token.
 
-const KEYCLOAK = `${location.protocol}//${location.hostname}:8080/realms/ecotrace/protocol/openid-connect`;
+// Keycloak's login pages are served by the gateway on this same origin (one public URL for everything).
+const KEYCLOAK = `${location.origin}/realms/ecotrace/protocol/openid-connect`;
 const CLIENT_ID = 'ecotrace-portal';
 const REDIRECT_URI = `${location.origin}/`;
 const STEPS = ['gateway', 'scan', 'store', 'classify', 'extract', 'persist', 'publish'];
