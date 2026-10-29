@@ -1,0 +1,598 @@
+{
+  "info": {
+    "name": "EcoTrace API",
+    "description": "EcoTrace core and apps through the APISIX gateway. Set baseUrl, username and password in the collection variables; a token is fetched automatically. Guide: docs/api/README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Gets a Keycloak token before the first request, when it expires, or when `username` changes.",
+          "const v = pm.collectionVariables;  // where the token is kept",
+          "const user = pm.variables.get('username');  // collection value, or an environment override",
+          "const fresh = v.get('accessToken') && v.get('tokenUser') === user && Date.now() < Number(v.get('tokenExpires') || 0);",
+          "if (!fresh) {",
+          "  pm.sendRequest({",
+          "    url: pm.variables.get('baseUrl') + '/realms/ecotrace/protocol/openid-connect/token',",
+          "    method: 'POST',",
+          "    header: { 'Content-Type': 'application/x-www-form-urlencoded' },",
+          "    body: { mode: 'urlencoded', urlencoded: [",
+          "      { key: 'grant_type', value: 'password' },",
+          "      { key: 'client_id', value: 'ecotrace-cli' },",
+          "      { key: 'username', value: user },",
+          "      { key: 'password', value: pm.variables.get('password') },",
+          "    ] },",
+          "  }, (err, res) => {",
+          "    if (err || res.code !== 200) {",
+          "      console.error('EcoTrace login failed', err || res.text());",
+          "      return;",
+          "    }",
+          "    const body = res.json();",
+          "    v.set('accessToken', body.access_token);",
+          "    v.set('tokenUser', user);",
+          "    v.set('tokenExpires', String(Date.now() + (body.expires_in - 30) * 1000));",
+          "  });",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('logged in (not 401)', () => pm.expect(pm.response.code).to.not.equal(401));",
+          "pm.test('no server error', () => pm.expect(pm.response.code).to.be.below(500));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:9080"
+    },
+    {
+      "key": "username",
+      "value": "alice"
+    },
+    {
+      "key": "password",
+      "value": "change-me-demo"
+    },
+    {
+      "key": "period",
+      "value": "2026-09"
+    },
+    {
+      "key": "documentId",
+      "value": ""
+    },
+    {
+      "key": "taskId",
+      "value": ""
+    },
+    {
+      "key": "activityId",
+      "value": ""
+    },
+    {
+      "key": "entryId",
+      "value": ""
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "tokenUser",
+      "value": ""
+    },
+    {
+      "key": "tokenExpires",
+      "value": "0"
+    }
+  ],
+  "item": [
+    {
+      "name": "Document Intake",
+      "item": [
+        {
+          "name": "Who am I",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/intake/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "intake",
+                "me"
+              ]
+            },
+            "description": "User, company, AI mode and the document types the company accepts."
+          }
+        },
+        {
+          "name": "Upload a document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/intake/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "intake",
+                "documents"
+              ]
+            },
+            "description": "Choose a file under Body > form-data > file, e.g. tenants/company-a-steel/seed/documents/electricity-bill-2026-09.pdf. Scanned by ClamAV, stored, classified and extracted. 409 if the same file was already uploaded by the company.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "tenants/company-a-steel/seed/documents/electricity-bill-2026-09.pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const id = pm.response.json().document?.id;",
+                  "  if (id) pm.collectionVariables.set('documentId', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/intake/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "intake",
+                "documents"
+              ]
+            },
+            "description": "The company's documents, newest first."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const id = (pm.response.json().documents || [])[0]?.id;",
+                  "  if (id) pm.collectionVariables.set('documentId', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get a document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/intake/documents/{{documentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "intake",
+                "documents",
+                "{{documentId}}"
+              ]
+            },
+            "description": "One document with its extracted fields."
+          }
+        },
+        {
+          "name": "Review and confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/intake/documents/{{documentId}}/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "intake",
+                "documents",
+                "{{documentId}}",
+                "review"
+              ]
+            },
+            "description": "Correct values (field names from the document type) and confirm. Every change is kept.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"values\": {\n    \"consumption_kwh\": \"188800\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Download the original",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/intake/documents/{{documentId}}/file",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "intake",
+                "documents",
+                "{{documentId}}",
+                "file"
+              ]
+            },
+            "description": "The original file."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workflow",
+      "item": [
+        {
+          "name": "My approval tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/workflow/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workflow",
+                "tasks"
+              ]
+            },
+            "description": "Log in as an approver (an.tran or binh.le) first."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const id = (pm.response.json().tasks || [])[0]?.id;",
+                  "  if (id) pm.collectionVariables.set('taskId', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve a task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workflow/tasks/{{taskId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workflow",
+                "tasks",
+                "{{taskId}}",
+                "complete"
+              ]
+            },
+            "description": "Approve or reject (approved: false).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approved\": true,\n  \"comment\": \"matches the meter\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Carbon Ledger",
+      "item": [
+        {
+          "name": "Activities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ledger/activities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "activities"
+              ]
+            },
+            "description": "Activities of the company and whether you can approve."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const id = (pm.response.json().activities || [])[0]?.id;",
+                  "  if (id) pm.collectionVariables.set('activityId', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve an activity (no workflow)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ledger/activities/{{activityId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "activities",
+                "{{activityId}}",
+                "approve"
+              ]
+            },
+            "description": "Only for companies without an approval process; otherwise 409."
+          }
+        },
+        {
+          "name": "Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ledger/summary?period={{period}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "{{period}}"
+                }
+              ]
+            },
+            "description": "Scope 1 and 2 totals, entries and periods."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const id = (pm.response.json().entries || [])[0]?.id;",
+                  "  if (id) pm.collectionVariables.set('entryId', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lineage of an entry",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ledger/entries/{{entryId}}/lineage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "entries",
+                "{{entryId}}",
+                "lineage"
+              ]
+            },
+            "description": "Source document, reviewer, approver, factor version and citation."
+          }
+        },
+        {
+          "name": "Trend",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ledger/trend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "trend"
+              ]
+            },
+            "description": "Emissions by period, scope and facility."
+          }
+        },
+        {
+          "name": "Close and seal a period",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ledger/periods/{{period}}/close",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "periods",
+                "{{period}}",
+                "close"
+              ]
+            },
+            "description": "Approver only. Writes the period's digest into the Trillian log."
+          }
+        },
+        {
+          "name": "Verify a sealed period",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ledger/periods/{{period}}/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "periods",
+                "{{period}}",
+                "verify"
+              ]
+            },
+            "description": "Recomputes the period and checks it against the Trillian log."
+          }
+        },
+        {
+          "name": "Export the inventory report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ledger/report?period={{period}}&format=xlsx",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "report"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "{{period}}"
+                },
+                {
+                  "key": "format",
+                  "value": "xlsx"
+                }
+              ]
+            },
+            "description": "Use Send and Download to save the file."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Purchase Approval",
+      "item": [
+        {
+          "name": "Purchase requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/purchase/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "purchase",
+                "requests"
+              ]
+            },
+            "description": "Requests created from purchase invoices."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Core data (GraphQL)",
+      "item": [
+        {
+          "name": "Facilities",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/graphql",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "graphql"
+              ]
+            },
+            "description": "Hasura GraphQL; rows are filtered by the token's tenant_id.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"{ core_facility(order_by: {name: asc}) { code name kind province } }\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

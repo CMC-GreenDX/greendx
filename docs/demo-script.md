@@ -64,6 +64,8 @@ Optional, events: `make events TENANT=company-a-steel` prints the CloudEvents th
 
 Optional, malware scan: in the terminal, `make intake-check` uploads the EICAR antivirus test file and shows it is rejected (HTTP 422) and never stored.
 
+Optional, API: open `/api-docs`, click **Authorize** and log in as `alice`. Then use **Try it out** on `GET /intake/documents`. The same API the console uses is open to any other application, and it returns only Company A's documents. See the [API guide](api/README.md).
+
 Optional, in the terminal: `make demo` shows that a call without a token, or with a token whose tenant was edited by hand, is rejected with 401.
 
 ## Questions to expect
