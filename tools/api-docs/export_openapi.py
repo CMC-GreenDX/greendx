@@ -1,8 +1,8 @@
 """Writes the OpenAPI document of every service to a folder, without starting the services.
 
-Used by the API docs site workflow. Run from the repository root, with the services' requirements installed:
+Used by the GitHub Pages workflow (.github/workflows/pages.yml). Run from the repository root, with the services' requirements installed:
 
-    python tools/api-docs/export_openapi.py site/openapi
+    python tools/api-docs/export_openapi.py _site/api/openapi
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ DUMP = "import json, sys; from app.main import app; json.dump(app.openapi(), sys
 
 
 def main() -> int:
-    out = Path(sys.argv[1] if len(sys.argv) > 1 else "site/openapi")
+    out = Path(sys.argv[1] if len(sys.argv) > 1 else "_site/api/openapi")
     out.mkdir(parents=True, exist_ok=True)
     # The login URLs in the documents point at a local stack; a deployment serves its own copy at /<service>/openapi.json.
     env = {**os.environ, "JWT_ISSUER": os.environ.get("JWT_ISSUER", "http://localhost:9080/realms/ecotrace")}
