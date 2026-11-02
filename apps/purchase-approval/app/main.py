@@ -199,7 +199,10 @@ async def lifespan(_: FastAPI):
     await pool.close()
 
 
-app = FastAPI(title="EcoTrace Purchase Approval", version="0.1.0", lifespan=lifespan)
+# The OpenAPI document sits under the service prefix so the gateway can publish it at /purchase/openapi.json;
+# the interactive page is the shared one at /api-docs.
+app = FastAPI(title="EcoTrace Purchase Approval", version="0.1.0", lifespan=lifespan,
+              openapi_url="/purchase/openapi.json", docs_url=None, redoc_url=None)
 
 
 @app.get("/purchase/health", include_in_schema=False)
@@ -207,7 +210,7 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/purchase/requests")
+@app.get("/purchase/requests", summary="List purchase requests created from invoices")
 async def requests_list(user: User = Depends(current_user)) -> dict:
     if not enabled(user.tenant_id):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "The purchase-approval module is not enabled for this tenant")
