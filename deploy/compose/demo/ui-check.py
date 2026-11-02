@@ -26,6 +26,9 @@ def check(ok: bool, message: str) -> None:
 
 def login(page: Page, user: str) -> None:
     page.goto(BASE)
+    # A public codespace port first shows GitHub's warning page once per browser session.
+    if "github.dev" in BASE and page.locator("#login").count() == 0:
+        page.get_by_role("button", name="Continue", exact=True).first.click()
     page.click("#login")
     page.fill("#username", user)
     page.fill("#password", PASSWORD)
@@ -126,6 +129,35 @@ with sync_playwright() as p:
     result = page.locator("#verify-result").get_attribute("class") or ""
     check(("ok" in result) == (expected == "valid"), f"seal verification in the console shows '{expected}'")
     page.screenshot(path=SHOTS / f"8-seal-{expected}.png", full_page=True)
+
+    # API reference page: log in through Keycloak from Swagger UI, then call the real API.
+    docs = browser.new_page(viewport={"width": 1366, "height": 900})
+    docs.goto(BASE + "/api-docs/")
+    if "github.dev" in BASE and docs.locator(".swagger-ui").count() == 0:
+        docs.get_by_role("button", name="Continue", exact=True).first.click()
+    expect(docs.locator(".opblock").first).to_be_visible(timeout=30_000)
+    check(docs.locator(".opblock-summary-path[data-path='/intake/documents']").count() > 0,
+          "API reference page lists the Document Intake endpoints")
+    docs.click("button.authorize")
+    modal = docs.locator(".modal-ux")
+    with docs.expect_popup() as popup_info:
+        modal.get_by_role("button", name="Apply given OAuth2 credentials").click()
+    popup = popup_info.value
+    popup.fill("#username", "alice")
+    popup.fill("#password", PASSWORD)
+    popup.click("#kc-login")
+    popup.wait_for_event("close", timeout=20_000)
+    expect(modal).to_contain_text("Logout", timeout=10_000)
+    check(True, "API reference page logs in through Keycloak (PKCE)")
+    modal.locator("button.btn-done").first.click()
+    op = docs.locator(".opblock-get").filter(has=docs.locator(".opblock-summary-path[data-path='/intake/documents']")).first
+    op.locator(".opblock-summary").click()
+    op.get_by_role("button", name="Try it out").click()
+    op.get_by_role("button", name="Execute").click()
+    response = op.locator(".live-responses-table .response-col_description pre").first
+    expect(response).to_be_visible(timeout=20_000)
+    check('"documents"' in response.inner_text(), "Try it out on GET /intake/documents returns alice's documents")
+    docs.screenshot(path=SHOTS / "9-api-docs.png")
 
     browser.close()
 

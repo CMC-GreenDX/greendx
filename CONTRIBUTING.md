@@ -63,7 +63,7 @@ docs(docs): record ADR for object storage
 | `build` | Build system, container images, dependencies |
 | `perf` | A performance improvement |
 
-**Scopes:** `core`, `gateway`, `identity`, `data`, `storage`, `workflow`, `events`, `ledger`, `intake`, `carbon`, `purchase`, `portal`, `dashboard`, `dxctl`, `infra`, `docs`.
+**Scopes:** `core`, `gateway`, `identity`, `data`, `storage`, `workflow`, `events`, `ledger`, `intake`, `carbon`, `purchase`, `portal`, `dashboard`, `api`, `dxctl`, `infra`, `docs`.
 
 Rules:
 

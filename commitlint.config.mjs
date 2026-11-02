@@ -17,6 +17,7 @@ const scopes = [
   'purchase',
   'portal',
   'dashboard',
+  'api',
   'dxctl',
   'infra',
   'docs',

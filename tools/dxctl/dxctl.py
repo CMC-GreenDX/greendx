@@ -117,6 +117,18 @@ class Keycloak:
             raise Failed(f"Keycloak {method} {path}: {response.status_code} {response.text[:200]}")
         return response.json() if response.content and "json" in response.headers.get("Content-Type", "") else None
 
+    def configure_portal(self, public_url: str) -> str:
+        """Points the browser client at the public URL (and keeps localhost for local development)."""
+        found = self.call("GET", "/clients", params={"clientId": "ecotrace-portal"})
+        if not found:
+            raise Failed("client ecotrace-portal not found in the realm")
+        client = found[0]
+        origins = sorted({public_url, "http://localhost:9080"})
+        client.update({"rootUrl": public_url, "baseUrl": "/", "redirectUris": [f"{o}/*" for o in origins], "webOrigins": origins,
+                       "attributes": {**client.get("attributes", {}), "post.logout.redirect.uris": "##".join(f"{o}/*" for o in origins)}})
+        self.call("PUT", f"/clients/{client['id']}", json=client)
+        return ", ".join(origins)
+
     def ensure_roles(self) -> None:
         existing = {r["name"] for r in self.call("GET", "/roles")}
         for role in ROLES:
@@ -137,8 +149,10 @@ class Keycloak:
         users = self.call("GET", "/users", params={"username": username, "exact": "true"})
         return users[0] if users else None
 
-    def ensure_user(self, tenant_id: str, group_id: str, user: dict) -> str:
-        """Creates or updates a user. Returns a note about the password."""
+    def ensure_user(self, tenant_id: str, group_id: str, user: dict, reset_password: bool = False) -> str:
+        """Creates or updates a user. Returns a note about the password.
+
+        An existing user's password is kept unless reset_password is set, e.g. before a public demo."""
         existing = self.find_user(user["username"])
         if existing and existing.get("attributes", {}).get("tenant_id", [tenant_id]) != [tenant_id]:
             raise Failed(f"user {user['username']} already belongs to another tenant")
@@ -154,6 +168,7 @@ class Keycloak:
         else:
             self.call("POST", "/users", json=body)
             user_id = self.find_user(user["username"])["id"]
+        if not existing or reset_password:
             password = os.environ.get(user.get("initial_password_env", ""), "")
             temporary = not password
             if not password:
@@ -236,7 +251,7 @@ def deploy_workflows(path: Path, tenant_id: str) -> list[str]:
 
 # --- Commands -----------------------------------------------------------------------------------
 
-async def create(path: Path) -> None:
+async def create(path: Path, reset_passwords: bool = False) -> None:
     started = time.perf_counter()
     pack = load_pack(path)
     tenant = pack["tenant.yaml"]
@@ -265,7 +280,7 @@ async def create(path: Path) -> None:
     group_id = kc.ensure_group(tenant_id, tenant["name"])
     say("identity", f"group tenant-{tenant_id}, roles {', '.join(ROLES)}")
     for user in pack["org.yaml"]["users"]:
-        note = kc.ensure_user(tenant_id, group_id, user)
+        note = kc.ensure_user(tenant_id, group_id, user, reset_passwords)
         say("user", f"{user['username']} [{', '.join(user['roles'])}]: {note}")
 
     say("storage", ensure_bucket(tenant_id))
@@ -305,18 +320,26 @@ def main() -> int:
     parser = argparse.ArgumentParser(prog="dxctl", description="Manage EcoTrace tenants from config packs.")
     sub = parser.add_subparsers(dest="noun", required=True)
     tenant = sub.add_parser("tenant").add_subparsers(dest="verb", required=True)
-    for verb in ("validate", "create"):
-        tenant.add_parser(verb).add_argument("pack", type=Path)
+    tenant.add_parser("validate").add_argument("pack", type=Path)
+    create_cmd = tenant.add_parser("create")
+    create_cmd.add_argument("pack", type=Path)
+    create_cmd.add_argument("--reset-passwords", action="store_true",
+                            help="set existing users' passwords again from their initial_password_env")
     for verb in ("disable", "enable"):
         tenant.add_parser(verb).add_argument("tenant_id")
     tenant.add_parser("list")
+    portal = sub.add_parser("portal").add_subparsers(dest="verb", required=True)
+    portal.add_parser("configure").add_argument("--url", default=os.environ.get("PUBLIC_URL", "http://localhost:9080"))
     args = parser.parse_args()
     try:
-        if args.verb == "validate":
+        if args.noun == "portal":
+            url = args.url.rstrip("/")
+            say("portal", f"browser client allows {Keycloak().configure_portal(url)}")
+        elif args.verb == "validate":
             pack = load_pack(args.pack)
             print(f"{pack['tenant.yaml']['id']}: config pack is valid ({len(PACK_FILES)} files)")
         elif args.verb == "create":
-            asyncio.run(create(args.pack))
+            asyncio.run(create(args.pack, args.reset_passwords))
         elif args.verb in ("disable", "enable"):
             asyncio.run(set_status(args.tenant_id, args.verb == "enable"))
         else:

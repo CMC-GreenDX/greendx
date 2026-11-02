@@ -47,6 +47,7 @@ check "flowable   REST API (from the workflow service)" flowable_ok
 check "workflow   (container healthcheck)" container_healthy workflow
 check "purchase   (container healthcheck)" container_healthy purchase-approval
 check "console    gateway -> demo console" http_ok "$GATEWAY_URL/"
+check "api-docs   gateway -> /api-docs/" http_ok "$GATEWAY_URL/api-docs/"
 
 if [ "$failed" -ne 0 ]; then
   echo "Some checks failed. Inspect with: make logs"

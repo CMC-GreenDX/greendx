@@ -19,6 +19,23 @@ This script covers what is built for the organiser demo on 2026-10-22: the ident
 
 If something fails: `make logs` shows the service logs, and `make reset && make up` starts again from an empty database.
 
+## Sharing a public link
+
+Use this when the teacher or the organisers should open EcoTrace from their own computers. Everything goes through the gateway on port 9080: the console, the APIs and the Keycloak login pages. Hasura, the Keycloak admin console, PostgreSQL and the other ports stay private to the codespace.
+
+1. In the codespace terminal, run `make public-url` and put the address it prints in `.env` as `PUBLIC_URL`.
+2. In `.env`, replace `DEMO_USER_PASSWORD` with a new password. `change-me-demo` is published in this repository, so anyone could use it.
+3. Run `make up`, then `make demo-password` to give every demo user the new password.
+4. Make port 9080 public: in VS Code, open **Ports**, right-click 9080 and choose **Port Visibility → Public**. From a terminal outside the codespace, run `gh codespace ports visibility 9080:public -c <codespace>`.
+5. Open the public address in a private browser window and log in as `alice` to check.
+
+Rules for a public link:
+
+- Upload only the fictional sample documents. On the free Gemini tier, Google may use the content.
+- The link works only while the codespace runs. It stops after 30 minutes without activity, and every hour is billed to the codespace owner.
+- When you are done, set the port back to **Private**, or stop the codespace.
+- To go back to working on `localhost`, remove `PUBLIC_URL` from `.env` and run `make up` again.
+
 ## Live demo in the browser (about 8 minutes)
 
 | Step | What to do | What to say |
@@ -46,6 +63,8 @@ If something fails: `make logs` shows the service logs, and `make reset && make 
 Optional, events: `make events TENANT=company-a-steel` prints the CloudEvents that Intake published for the last upload, including the extracted fields. This is what Carbon Ledger will consume.
 
 Optional, malware scan: in the terminal, `make intake-check` uploads the EICAR antivirus test file and shows it is rejected (HTTP 422) and never stored.
+
+Optional, API: open `/api-docs`, click **Authorize** and log in as `alice`. Then use **Try it out** on `GET /intake/documents`. The same API the console uses is open to any other application, and it returns only Company A's documents. See the [API guide](api/README.md).
 
 Optional, in the terminal: `make demo` shows that a call without a token, or with a token whose tenant was edited by hand, is rejected with 401.
 

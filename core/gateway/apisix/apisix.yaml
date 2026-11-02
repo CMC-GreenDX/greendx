@@ -28,12 +28,38 @@ upstreams:
     type: roundrobin
     nodes:
       "purchase-approval:8000": 1
+  - id: keycloak
+    type: roundrobin
+    nodes:
+      "keycloak:8080": 1
+  - id: api-docs
+    type: roundrobin
+    nodes:
+      "api-docs:8080": 1
   - id: demo-console
     type: roundrobin
     nodes:
       "demo-console:80": 1
 
 routes:
+  # API reference: the OpenAPI documents and the Swagger UI page are public (they describe the API, they hold no data).
+  # "Try it out" on the page calls the routes below, which still require a token.
+  - id: intake-openapi
+    uri: /intake/openapi.json
+    upstream_id: document-intake
+  - id: ledger-openapi
+    uri: /ledger/openapi.json
+    upstream_id: carbon-ledger
+  - id: workflow-openapi
+    uri: /workflow/openapi.json
+    upstream_id: workflow
+  - id: purchase-openapi
+    uri: /purchase/openapi.json
+    upstream_id: purchase-approval
+  - id: api-docs
+    uris: [/api-docs, /api-docs/*]
+    upstream_id: api-docs
+
   - id: graphql
     uri: /v1/graphql
     upstream_id: hasura
@@ -146,6 +172,24 @@ routes:
         key: remote_addr
         rejected_code: 429
         policy: local
+
+  # Keycloak login pages on the same origin as the console, so one public URL is enough.
+  # Only the ecotrace realm and static resources: the admin console and the master realm stay private.
+  - id: keycloak-realm
+    uri: /realms/ecotrace/*
+    upstream_id: keycloak
+    plugins:
+      limit-count:
+        count: 300
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        rejected_code: 429
+        policy: local
+
+  - id: keycloak-resources
+    uri: /resources/*
+    upstream_id: keycloak
 
   - id: gateway-health
     uri: /gateway/health

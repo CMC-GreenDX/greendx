@@ -93,7 +93,10 @@ async def lifespan(_: FastAPI):
         await task
 
 
-app = FastAPI(title="EcoTrace Workflow", version="0.1.0", lifespan=lifespan)
+# The OpenAPI document sits under the service prefix so the gateway can publish it at /workflow/openapi.json;
+# the interactive page is the shared one at /api-docs.
+app = FastAPI(title="EcoTrace Workflow", version="0.1.0", lifespan=lifespan,
+              openapi_url="/workflow/openapi.json", docs_url=None, redoc_url=None)
 
 
 def _task_view(t: dict) -> dict:
@@ -110,7 +113,7 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/workflow/tasks")
+@app.get("/workflow/tasks", summary="List my open approval tasks")
 async def my_tasks(user: User = Depends(current_user)) -> dict:
     """Open tasks of the caller's tenant that one of the caller's roles may complete."""
     found = await asyncio.to_thread(flowable.tasks, user.tenant_id, sorted(user.roles))
@@ -122,7 +125,7 @@ class Decision(BaseModel):
     comment: str = ""
 
 
-@app.post("/workflow/tasks/{task_id}/complete")
+@app.post("/workflow/tasks/{task_id}/complete", summary="Approve or reject a task")
 async def complete(task_id: str, body: Decision, user: User = Depends(current_user)) -> dict:
     t = await asyncio.to_thread(flowable.task, task_id)
     if t is None or t.get("tenantId") != user.tenant_id:
