@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoTrace – Truy vết số liệu phát thải đến chứng từ gốc</title>
+<meta name="description" content="EcoTrace là hệ điều hành chuyển đổi số lõi mở: đọc hoá đơn và phiếu giấy bằng AI, cho người có trách nhiệm duyệt, tính phát thải Scope 1 và 2, niêm phong số liệu để thẩm định.">
+<meta property="og:title" content="EcoTrace – Mỗi con số phát thải đều truy được về chứng từ gốc">
+<meta property="og:description" content="Nền tảng nguồn mở theo khung DX-OS, đội CMC-GreenDX, OLP Phần mềm nguồn mở 2026.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2310241A'/%3E%3Cpath d='M7 25c0-10 6-17 18-18-1 12-8 18-18 18z' fill='none' stroke='%237FD1A4' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap">
+<style>
+:root{
+  --ink:#13231B;--muted:#4B5A51;--paper:#F6F4EC;--paper-2:#ECE8DB;--card:#FFFDF7;--line:#DCD6C4;
+  --forest:#10241A;--green:#1F7A4D;--mint:#7FD1A4;--mint-soft:#CFE9DA;--amber:#E3A72F;--sand:#E9E4D4;
+  --on-dark:#F3F1E8;--on-dark-muted:#BFD3C7;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Be Vietnam Pro',Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--green)}a:hover{color:var(--forest)}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px;border-radius:6px}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+.mono{font-family:'JetBrains Mono','Courier New',monospace}
+.eyebrow{margin:0;font-size:14px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--green)}
+h1,h2,h3{margin:0;letter-spacing:-.5px}
+h2{font-size:clamp(30px,3.4vw,44px);line-height:1.15;font-weight:800}
+.lead{margin:0;font-size:17px;line-height:1.6;color:var(--muted)}
+.head{display:flex;flex-direction:column;gap:12px;max-width:800px}
+.section{padding:88px 0;display:block}
+.stack{display:flex;flex-direction:column;gap:36px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px}
+.grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.pill{display:inline-block;font-size:14px;font-weight:700;padding:7px 14px;border-radius:999px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:13px 24px;border-radius:999px;font:inherit;font-weight:700;font-size:16px;text-decoration:none;cursor:pointer}
+.skip{position:absolute;left:-9999px}.skip:focus{left:16px;top:16px;z-index:10;background:var(--amber);color:var(--ink);padding:10px 16px;border-radius:8px}
+
+/* header */
+header.top{background:var(--forest);color:var(--on-dark)}
+nav.main{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:18px 0}
+.brand{display:flex;align-items:center;gap:10px;color:var(--on-dark);text-decoration:none;font-size:22px;font-weight:800}
+.brand:hover{color:var(--on-dark)}
+.links{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.links a{color:#D5E3DA;text-decoration:none;font-size:15px;padding:10px 12px;border-radius:8px}
+.links a:hover{color:#fff;background:rgba(255,255,255,.06)}
+.links a.cta{background:var(--mint);color:var(--forest);font-weight:700;padding:10px 18px;border-radius:999px;margin-left:6px}
+.hero{display:flex;flex-wrap:wrap;gap:56px;align-items:center;padding:64px 0 96px}
+.hero-text{flex:1 1 520px;min-width:0;display:flex;flex-direction:column;gap:24px}
+.hero h1{font-size:clamp(38px,5vw,62px);line-height:1.08;font-weight:800;letter-spacing:-1.5px;color:var(--on-dark)}
+.hero p.sub{margin:0;font-size:19px;line-height:1.6;color:var(--on-dark-muted);max-width:580px}
+.hero .eyebrow{color:var(--mint)}
+.btn-amber{background:var(--amber);color:var(--ink)}.btn-amber:hover{color:var(--ink);filter:brightness(1.05)}
+.btn-ghost{border:1.5px solid #5E7A6A;color:var(--on-dark)}.btn-ghost:hover{color:#fff;border-color:var(--mint)}
+.mock{flex:1 1 420px;min-width:0;display:flex;justify-content:center}
+.mock-card{width:100%;max-width:470px;background:var(--paper);color:var(--ink);border-radius:22px;padding:26px;box-shadow:0 30px 60px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:14px}
+.field{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.field.warn{background:#FFF6E2;border-color:var(--amber)}
+.field .row{display:flex;justify-content:space-between;gap:8px}
+.bar{height:6px;background:var(--sand);border-radius:6px}.bar>span{display:block;height:6px;border-radius:6px;background:var(--green)}
+.field.warn .bar>span{background:#B7791F}
+.small{font-size:13px;color:var(--muted)}
+
+/* stats */
+.stat{font-size:44px;font-weight:800;color:var(--green);letter-spacing:-1px;line-height:1.1}
+.card h3{font-size:20px;font-weight:700;margin:10px 0 8px}
+.card p{margin:0;font-size:16px;line-height:1.6;color:var(--muted)}
+
+/* stepper */
+.stepper{display:flex;flex-wrap:wrap;gap:24px;align-items:stretch}
+.step-list{flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.step-btn{width:100%;font:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;gap:16px;padding:15px 18px;min-height:64px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font-size:17px;font-weight:600}
+.step-btn .n{flex:none;width:36px;height:36px;border-radius:999px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.step-btn[aria-selected="true"]{background:var(--forest);border-color:var(--forest);color:var(--on-dark);font-weight:700}
+.step-btn[aria-selected="true"] .n{background:var(--mint);color:var(--forest)}
+.step-panel{flex:2 1 520px;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:36px;display:flex;flex-direction:column;gap:20px}
+.step-panel h3{font-size:30px;line-height:1.2;font-weight:800}
+.step-panel p.summary{margin:0;font-size:18px;line-height:1.65;color:#2E3B33}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.pair>div{background:var(--paper);border-radius:14px;padding:20px}
+.label{display:block;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.pair p{margin:0;font-size:16px;line-height:1.6}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:'JetBrains Mono','Courier New',monospace;font-size:13px;background:var(--sand);padding:6px 12px;border-radius:8px}
+.live{background:var(--green);color:var(--on-dark)}
+.nav-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn-line{border:1.5px solid #B7B09A;background:transparent;color:var(--ink);font-weight:600;font-size:15px;min-height:44px;padding:10px 20px}
+.btn-green{background:var(--green);color:var(--on-dark);border:none;font-size:15px;min-height:44px;padding:10px 22px}
+
+/* chain */
+.band-amber{background:var(--amber)}
+.chain{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:12px}
+.chain li{flex:1 1 170px;background:var(--card);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:6px}
+.chain li:first-child{background:var(--forest);color:var(--on-dark)}
+.chain .k{font-size:13px;font-weight:700;color:var(--green)}
+.chain li:first-child .k{color:var(--mint)}
+.chain .v{font-size:17px;font-weight:700}
+
+/* roles */
+.role h3{font-size:21px;font-weight:800;margin:0 0 14px}
+.role .lbl{font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase}
+.role .before{color:#8A4B0C}.role .after{color:var(--green)}
+.role p{margin:4px 0 14px}
+.role p.gain{color:var(--ink);margin-bottom:0}
+
+/* tenants */
+.band-sand{background:var(--paper-2)}
+.tabs{display:flex;flex-wrap:wrap;gap:10px}
+.tab{font:inherit;cursor:pointer;font-size:16px;font-weight:600;padding:12px 22px;min-height:48px;border-radius:999px;border:1.5px solid #8A968E;background:transparent;color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--forest);border-color:var(--forest);color:var(--on-dark);font-weight:700}
+.tenant{display:flex;flex-wrap:wrap;gap:24px}
+.tenant .info{flex:1 1 460px;min-width:0;background:var(--card);border-radius:22px;padding:32px;display:flex;flex-direction:column;gap:20px}
+.tenant .info h3{font-size:26px;font-weight:800}
+.docpill{font-size:15px;font-weight:600;background:var(--mint-soft);color:var(--forest);padding:7px 14px;border-radius:999px}
+.boxes{display:flex;flex-wrap:wrap;gap:16px}
+.box{flex:1 1 200px;background:var(--paper);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.box .big{font-size:34px;font-weight:800;color:var(--green)}
+.box .kv{display:flex;justify-content:space-between;gap:12px;font-size:15px}
+.code{flex:1 1 380px;min-width:0;background:var(--forest);color:var(--on-dark);border-radius:22px;padding:28px;overflow-x:auto;margin:0;font-size:14px;line-height:1.7}
+.code .path{color:var(--mint)}
+.code .c{color:#8FA898}
+
+/* architecture */
+.tier{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 28px;display:flex;flex-wrap:wrap;gap:20px;align-items:center}
+.tier .t{flex:0 1 300px;display:flex;flex-direction:column;gap:4px}
+.tier h3{font-size:20px;font-weight:800}
+.tier .t span{font-size:15px;color:var(--muted)}
+.tier .c{flex:1 1 400px;display:flex;flex-wrap:wrap;gap:8px}
+.tag{font-size:15px;background:var(--sand);padding:8px 14px;border-radius:10px}
+.tag.hl{background:var(--mint-soft);font-weight:600}
+.tier.dark{background:var(--forest);border-color:var(--forest)}
+.tier.dark h3{color:var(--on-dark)}.tier.dark .t span{color:var(--on-dark-muted)}
+.tag.on{background:var(--mint);color:var(--forest)}
+.tag.todo{background:transparent;color:#D5E3DA;border:1.5px dashed #5E7A6A;padding:7px 13px}
+
+/* oss + ai */
+.two{display:flex;flex-wrap:wrap;gap:24px}
+.two>div{flex:1 1 440px;min-width:0}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;padding:10px 8px;border-bottom:2px solid var(--forest)}
+td{padding:10px 8px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:none}
+.dark-card{background:var(--forest);color:var(--on-dark);border-radius:22px;padding:32px;display:flex;flex-direction:column;gap:16px}
+.dark-card .eyebrow{color:var(--mint)}
+.dark-card h3{font-size:26px;line-height:1.25;font-weight:800}
+.dark-card ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;font-size:16px;line-height:1.55;color:#D5E3DA}
+
+/* roadmap */
+.phases{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.phase{background:var(--card);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:6px;border:2px solid transparent}
+.phase .no{font-size:26px;font-weight:800;color:var(--green)}
+.phase .nm{font-size:16px;font-weight:700}
+.phase .st{font-size:14px;font-weight:700}
+.phase.done{background:var(--green);color:var(--on-dark)}.phase.done .no{color:var(--mint)}.phase.done .st{color:var(--mint-soft)}
+.phase.doing{background:var(--amber)}.phase.doing .no{color:var(--ink)}
+.phase.plan{border:2px dashed #B7B09A}.phase.plan .st{color:var(--muted);font-weight:600}
+
+/* faq */
+.faq{display:flex;flex-direction:column;gap:10px}
+details{background:var(--card);border:1px solid var(--line);border-radius:16px}
+summary{cursor:pointer;list-style:none;padding:20px 24px;min-height:56px;display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:17px;font-weight:700}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:24px;color:var(--green)}
+details[open] summary::after{content:"−"}
+details p{margin:0;padding:0 24px 22px;font-size:16px;line-height:1.65;color:#2E3B33}
+
+/* try + footer */
+.try{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:32px;display:flex;flex-wrap:wrap;gap:28px}
+.try>div{flex:1 1 360px;min-width:0}
+.try pre{margin:0;background:var(--forest);color:var(--on-dark);border-radius:14px;padding:20px;overflow-x:auto;font-size:14px;line-height:1.7}
+footer{background:var(--forest);color:var(--on-dark)}
+footer .inner{padding:72px 0 40px;display:flex;flex-direction:column;gap:36px}
+footer .row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:28px}
+footer h2{font-size:clamp(28px,3vw,40px);max-width:640px}
+footer .meta{border-top:1px solid #2E4A3B;padding-top:24px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;font-size:14px;color:var(--on-dark-muted)}
+footer .meta a{color:var(--on-dark-muted)}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Bỏ qua điều hướng</a>
+
+<header class="top">
+<div class="wrap">
+<nav class="main" aria-label="Điều hướng chính">
+<a class="brand" href="#top">
+<svg aria-hidden="true" width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#7FD1A4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 26c0-11 7-19 20-20-1 13-9 20-20 20z"/><path d="M6 26l10-10"/></svg>
+EcoTrace
+</a>
+<div class="links">
+<a href="#problem">Vấn đề</a>
+<a href="#how">Cách hoạt động</a>
+<a href="#roles">Ai được lợi</a>
+<a href="#tenants">Đa công ty</a>
+<a href="#architecture">Kiến trúc</a>
+<a href="#faq">Hỏi đáp</a>
+<a class="cta" href="https://github.com/CMC-GreenDX/greendx">Mã nguồn</a>
+</div>
+</nav>
+
+<div class="hero" id="top">
+<div class="hero-text">
+<p class="eyebrow">Nguồn mở · DX-OS Open-Core · OLP PMNM 2026</p>
+<h1>Mỗi con số phát thải đều truy được về chứng từ gốc.</h1>
+<p class="sub">EcoTrace đọc hoá đơn và phiếu giấy bằng AI, cho người có trách nhiệm duyệt, tính phát thải Scope 1 và 2, rồi niêm phong số liệu để bên thẩm định kiểm tra. Một lõi nguồn mở dùng chung cho nhiều công ty.</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px">
+<a class="btn btn-amber" href="#how">Xem cách hoạt động</a>
+<a class="btn btn-ghost" href="#try">Chạy thử trên máy bạn</a>
+</div>
+</div>
+<div class="mock" aria-label="Ví dụ kết quả đọc một hoá đơn tiền điện" role="img">
+<div class="mock-card">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+<div style="display:flex;flex-direction:column;gap:2px">
+<span style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--green)">Hoá đơn tiền điện</span>
+<span style="font-size:18px;font-weight:700">Kỳ 08/2026 · Công ty A</span>
+</div>
+<span class="pill" style="background:var(--mint-soft);color:var(--forest);font-size:13px">Đã quét sạch</span>
+</div>
+<div class="field"><div class="row"><span class="small" style="font-size:14px">Điện năng tiêu thụ</span><strong>188.800 kWh</strong></div><div class="bar"><span style="width:96%"></span></div><span class="small">Độ tin cậy 96%</span></div>
+<div class="field"><div class="row"><span class="small" style="font-size:14px">Kỳ hoá đơn</span><strong>01/08 – 31/08/2026</strong></div><div class="bar"><span style="width:93%"></span></div><span class="small">Độ tin cậy 93%</span></div>
+<div class="field warn"><div class="row"><span class="small" style="font-size:14px">Số công tơ</span><strong>CT-BR-000456</strong></div><div class="bar"><span style="width:71%"></span></div><span class="small" style="color:#7A4B00;font-weight:600">Độ tin cậy 71% · dưới ngưỡng 80%, cần người kiểm tra</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+<span class="small">Ví dụ minh hoạ từ chứng từ hư cấu</span>
+<span style="font-size:14px;font-weight:700;color:var(--green)">Xem tài liệu gốc →</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</header>
+
+<main id="main">
+
+<section class="section" id="problem" style="padding-bottom:40px">
+<div class="wrap stack">
+<div class="head">
+<p class="eyebrow">Vấn đề</p>
+<h2>Số liệu phát thải đang được gõ lại bằng tay, trong khi luật đòi bằng chứng</h2>
+</div>
+<div class="grid">
+<div class="card"><div class="stat">Excel</div><h3>Chứng từ đến từ email, Zalo, giấy</h3><p>Hoá đơn điện, phiếu đổ dầu, phiếu xuất kho được gõ lại vào bảng tính. Gõ xong, con số không còn gắn với bản gốc.</p></div>
+<div class="card"><div class="stat">2.441</div><h3>cơ sở phải kiểm kê khí nhà kính</h3><p>Theo Quyết định 42/2026/QĐ-TTg, hiệu lực từ 25/09/2026.</p></div>
+<div class="card"><div class="stat">30/09/2027</div><h3>hạn tờ khai CBAM đầu tiên</h3><p>Cho hàng nhập vào EU năm 2026. Số liệu phát thải thực tế phải được bên độc lập thẩm định.</p></div>
+</div>
+</div>
+</section>
+
+<section class="section" id="how">
+<div class="wrap stack">
+<div class="head">
+<p class="eyebrow">Cách hoạt động</p>
+<h2>Theo chân một hoá đơn qua sáu bước</h2>
+<p class="lead">Chọn từng bước để xem người dùng làm gì và hệ thống làm gì. Cả sáu bước đều đã chạy trong bản demo.</p>
+</div>
+<div class="stepper">
+<div class="step-list" role="tablist" aria-label="Sáu bước xử lý" id="stepList"></div>
+<div class="step-panel" role="tabpanel" id="stepPanel" aria-live="polite">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+<span class="eyebrow" id="stepNo">Bước 1 / 6</span>
+<span class="pill live">Đang chạy trong bản demo</span>
+</div>
+<h3 id="stepTitle"></h3>
+<p class="summary" id="stepSummary"></p>
+<div class="pair">
+<div><span class="label">Người dùng làm</span><p id="stepWho"></p></div>
+<div><span class="label">Hệ thống làm</span><p id="stepSystem"></p></div>
+</div>
+<div class="chips" id="stepTech"></div>
+<div class="nav-row">
+<button type="button" class="btn btn-line" id="prevStep">← Bước trước</button>
+<button type="button" class="btn btn-green" id="nextStep">Bước tiếp →</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="band-amber">
+<div class="wrap stack section">
+<div class="head">
+<p class="eyebrow" style="color:var(--ink)">Chuỗi truy vết</p>
+<h2>Bấm vào một con số trên báo cáo, mở ra cả lịch sử của nó</h2>
+</div>
+<ol class="chain">
+<li><span class="k">1 · Con số</span><span class="v">128,57 tCO₂e, Scope 2</span></li>
+<li><span class="k">2 · Bản ghi hoạt động</span><span class="v">188.800 kWh, theo kỳ và cơ sở</span></li>
+<li><span class="k">3 · Trường đã trích</span><span class="v">Giá trị, độ tin cậy, lịch sử sửa</span></li>
+<li><span class="k">4 · Chứng từ gốc</span><span class="v">Tệp tải lên, mã SHA-256</span></li>
+<li><span class="k">5 · Người duyệt, hệ số</span><span class="v">Ai duyệt, phiên bản hệ số, trích dẫn</span></li>
+<li><span class="k">6 · Niêm phong</span><span class="v">Lá trong sổ Trillian của công ty</span></li>
+</ol>
+<p class="lead" style="color:#2B2A1F;max-width:860px">Ví dụ từ kịch bản demo. Khi một kỳ đã chốt, nếu ai đó sửa trực tiếp một dòng trong cơ sở dữ liệu, kiểm tra niêm phong đọc lại bằng chứng từ sổ Trillian và chỉ ra đúng dòng bị sửa.</p>
+</div>
+</section>
+
+<section class="section" id="roles">
+<div class="wrap stack">
+<div class="head">
+<p class="eyebrow">Ai được lợi</p>
+<h2>Mỗi vai trò bớt một việc thủ công</h2>
+</div>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+<div class="card role"><h3>Kế toán, thủ kho</h3><span class="lbl before">Trước đây</span><p>Gõ lại từng con số từ hoá đơn, phiếu giấy vào Excel, dễ sai và mất thời gian.</p><span class="lbl after">Với EcoTrace</span><p class="gain">Kéo thả hoặc chụp ảnh; hoá đơn điện tử XML được đọc chính xác, ảnh chụp được AI đọc. Chỉ cần kiểm tra trường bị gắn cờ.</p></div>
+<div class="card role"><h3>Trưởng bộ phận</h3><span class="lbl before">Trước đây</span><p>Ký duyệt số liệu mà không có bản gốc bên cạnh để đối chiếu.</p><span class="lbl after">Với EcoTrace</span><p class="gain">Việc cần duyệt hiện trong hộp thư theo đúng quy trình của công ty, kèm bản gốc; hệ thống ghi lại ai duyệt.</p></div>
+<div class="card role"><h3>Phụ trách môi trường, ESG</h3><span class="lbl before">Trước đây</span><p>Cuối kỳ đi gom dữ liệu từ nhiều phòng, nhiều định dạng.</p><span class="lbl after">Với EcoTrace</span><p class="gain">Số liệu đã duyệt tự thành phát thải theo kỳ và cơ sở; xuất báo cáo kiểm kê Excel một lần bấm.</p></div>
+<div class="card role"><h3>Ban giám đốc</h3><span class="lbl before">Trước đây</span><p>Không chắc con số trên báo cáo có đáng tin, lo mất đơn hàng EU.</p><span class="lbl after">Với EcoTrace</span><p class="gain">Dashboard cập nhật trực tiếp; mọi con số có chuỗi nguồn gốc; kỳ đã chốt được niêm phong chống sửa.</p></div>
+<div class="card role"><h3>Bên thẩm định, khách hàng</h3><span class="lbl before">Trước đây</span><p>Phải tin vào bảng tính mà ai cũng sửa được.</p><span class="lbl after">Với EcoTrace</span><p class="gain">Xem chứng từ gốc, mã SHA-256 và tự kiểm tra niêm phong của từng kỳ.</p></div>
+<div class="card role"><h3>Bộ phận IT</h3><span class="lbl before">Trước đây</span><p>Mỗi phòng một phần mềm rời rạc, hoặc bị trói vào một nhà cung cấp.</p><span class="lbl after">Với EcoTrace</span><p class="gain">Một lõi nguồn mở chạy tại chỗ; thêm công ty bằng một lệnh, thêm nghiệp vụ bằng cấu hình.</p></div>
+</div>
+</div>
+</section>
+
+<section class="band-sand" id="tenants">
+<div class="wrap stack section">
+<div class="head">
+<p class="eyebrow">Một lõi, nhiều công ty</p>
+<h2>Đổi công ty bằng cấu hình, không sửa một dòng mã</h2>
+<p class="lead">Mỗi công ty là một thư mục cấu hình trong <span class="mono">tenants/</span>. Công ty C được thêm trực tiếp trong buổi demo bằng lệnh <span class="mono">dxctl tenant create</span>. Chọn công ty để thấy cùng một phần mềm thay đổi thế nào.</p>
+</div>
+<div class="tabs" role="tablist" aria-label="Chọn công ty" id="tenantTabs"></div>
+<div class="tenant" role="tabpanel" id="tenantPanel">
+<div class="info">
+<div style="display:flex;flex-direction:column;gap:4px">
+<span class="eyebrow" id="tIndustry"></span>
+<h3 id="tName"></h3>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:14px;font-weight:700;color:var(--muted)">Loại chứng từ nhận</span>
+<div class="chips" id="tDocs"></div>
+</div>
+<div class="boxes">
+<div class="box"><span style="font-size:14px;font-weight:700;color:var(--muted)">Ngưỡng cần duyệt</span><span class="big" id="tThreshold"></span><span class="small" style="font-size:14px">Trường dưới ngưỡng được gắn cờ</span></div>
+<div class="box"><span style="font-size:14px;font-weight:700;color:var(--muted)">Luồng duyệt (BPMN)</span><span id="tFlow" style="font-size:15px;line-height:1.5"></span></div>
+<div class="box" id="tModules"><span style="font-size:14px;font-weight:700;color:var(--muted)">Module</span></div>
+</div>
+<p class="small" style="font-size:15px">Người dùng của công ty này chỉ thấy tài liệu và cơ sở của chính mình. Cách ly được thực thi bằng row-level security trong PostgreSQL.</p>
+</div>
+<pre class="code mono" id="tYaml"></pre>
+</div>
+</div>
+</section>
+
+<section class="section" id="architecture">
+<div class="wrap stack" style="gap:24px">
+<div class="head">
+<p class="eyebrow">Kiến trúc DX-OS</p>
+<h2>Ba tầng, càng xuống dưới càng không biết gì về carbon</h2>
+</div>
+<div class="tier"><div class="t"><h3>Tầng 3 · Ứng dụng</h3><span>Bật, tắt theo từng công ty</span></div><div class="c"><span class="tag hl">Carbon Ledger</span><span class="tag hl">Duyệt mua hàng</span></div></div>
+<div class="tier"><div class="t"><h3>Tầng 2 · Năng lực dùng chung</h3><span>Chỉ gọi lõi qua cổng API và trục sự kiện</span></div><div class="c"><span class="tag hl">[I] Document Intake</span><span class="tag hl">[P] Workflow, hộp việc chờ duyệt</span><span class="tag hl">[D] Dashboard trực tiếp</span><span class="tag">[H] Cổng người dùng (bản demo)</span></div></div>
+<div class="tier dark"><div class="t"><h3>Tầng 1 · Lõi headless</h3><span>Không giao diện, không nghiệp vụ</span></div><div class="c">
+<span class="tag on">Keycloak</span><span class="tag on">APISIX</span><span class="tag on">PostgreSQL + RLS</span><span class="tag on">Hasura</span><span class="tag on">ClamAV</span><span class="tag on">SeaweedFS</span><span class="tag on">NATS JetStream</span><span class="tag on">Flowable</span><span class="tag on">Trillian</span>
+<span class="tag todo">OpenBao</span><span class="tag todo">Kestra</span><span class="tag todo">Giám sát</span>
+</div></div>
+<p class="lead" style="font-size:15px">Ô đặc: đang chạy trong Docker Compose. Ô viền đứt: đã chọn và kiểm tra giấy phép, đang tích hợp. Lý do từng lựa chọn nằm trong các ADR của repo.</p>
+</div>
+</section>
+
+<section style="padding:0 0 88px">
+<div class="wrap two">
+<div class="card" style="display:flex;flex-direction:column;gap:16px">
+<p class="eyebrow">Nguồn mở thật sự</p>
+<h3 style="font-size:26px;line-height:1.25;font-weight:800;margin:0">Chỉ dùng giấy phép được OSI công nhận</h3>
+<p>Phiên bản nào cũng được ghim và kiểm tra giấy phép. Thành phần đã đổi sang giấy phép hạn chế thì được thay:</p>
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th scope="col">Thay cho</th><th scope="col">Dùng</th><th scope="col">Lý do</th></tr></thead>
+<tbody>
+<tr><td>HashiCorp Vault</td><td><strong>OpenBao</strong></td><td>Vault chuyển sang BSL</td></tr>
+<tr><td>immudb</td><td><strong>Trillian</strong></td><td>immudb dùng BSL từ 12/2023</td></tr>
+<tr><td>Redpanda, Kafka</td><td><strong>NATS JetStream</strong></td><td>BSL; Kafka nặng cho máy 16 GB</td></tr>
+<tr><td>MinIO</td><td><strong>SeaweedFS</strong></td><td>Kho mã MinIO đã lưu trữ</td></tr>
+<tr><td>n8n</td><td><strong>Kestra</strong></td><td>Giấy phép không thuộc OSI</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="dark-card">
+<p class="eyebrow">AI, nói rõ đánh đổi</p>
+<h3>AI dạng dịch vụ, có đường lui chạy tại chỗ</h3>
+<ul>
+<li>Hoá đơn điện tử XML được đọc thẳng: chính xác, miễn phí, không cần AI.</li>
+<li>PDF và ảnh chụp: Gemini mặc định, Claude là tuỳ chọn; định dạng câu trả lời sinh từ cấu hình của từng công ty.</li>
+<li>Không có khoá API hoặc API lỗi: chạy bằng luật dự phòng, vẫn nhận tài liệu.</li>
+<li>AI không phát hành kèm EcoTrace. Bản demo chỉ gửi chứng từ hư cấu.</li>
+</ul>
+</div>
+</div>
+</section>
+
+<section class="band-sand">
+<div class="wrap stack section">
+<div class="head">
+<p class="eyebrow">Lộ trình</p>
+<h2>Mười giai đoạn, mỗi giai đoạn có tiêu chí xong</h2>
+<p class="lead">Cập nhật theo repo ngày 29/10/2026.</p>
+</div>
+<div class="phases">
+<div class="phase done"><span class="no">0</span><span class="nm">Khởi tạo repo, quy ước</span><span class="st">Xong</span></div>
+<div class="phase doing"><span class="no">1</span><span class="nm">Dựng lõi</span><span class="st">Gần xong · còn OpenBao, Kestra, giám sát</span></div>
+<div class="phase done"><span class="no">2</span><span class="nm">Đa công ty, dxctl, RLS</span><span class="st">Xong</span></div>
+<div class="phase done"><span class="no">3</span><span class="nm">Document Intake</span><span class="st">Xong</span></div>
+<div class="phase done"><span class="no">4</span><span class="nm">Luồng duyệt BPMN</span><span class="st">Xong</span></div>
+<div class="phase doing"><span class="no">5</span><span class="nm">Carbon Ledger, niêm phong</span><span class="st">Phần lớn xong · còn đối chiếu công tơ</span></div>
+<div class="phase doing"><span class="no">6</span><span class="nm">Cổng người dùng, dashboard</span><span class="st">Một phần · dashboard trực tiếp đã có</span></div>
+<div class="phase plan"><span class="no">7</span><span class="nm">Dữ liệu nóng, lạnh</span><span class="st">Kế hoạch</span></div>
+<div class="phase plan"><span class="no">8</span><span class="nm">GitOps, tự phục hồi</span><span class="st">Kế hoạch</span></div>
+<div class="phase plan"><span class="no">9</span><span class="nm">Hoàn thiện, v1.0.0</span><span class="st">Kế hoạch</span></div>
+</div>
+</div>
+</section>
+
+<section class="section" id="faq">
+<div class="wrap stack" style="max-width:920px">
+<div class="head">
+<p class="eyebrow">Hỏi đáp</p>
+<h2>Câu hỏi thường gặp</h2>
+</div>
+<div class="faq">
+<details open><summary>EcoTrace có cấp chứng nhận phát thải không?</summary><p>Không. EcoTrace chuẩn bị số liệu có bằng chứng, truy vết được và đã niêm phong, để bên thẩm định độc lập kiểm tra nhanh và tin cậy hơn.</p></details>
+<details><summary>Hoá đơn của công ty có bị gửi ra ngoài cho AI không?</summary><p>Hoá đơn điện tử XML được đọc tại chỗ, không qua AI. Với PDF và ảnh, chỉ khi bật AI thì tệp mới được gửi tới dịch vụ AI; đây là tuỳ chọn theo từng triển khai. Không có khoá API thì hệ thống chạy hoàn toàn tại chỗ bằng luật dự phòng. Bản demo chỉ dùng chứng từ hư cấu.</p></details>
+<details><summary>AI đọc sai thì sao?</summary><p>Mỗi trường có độ tin cậy; trường dưới ngưỡng của công ty được gắn cờ để người kiểm tra và sửa. Lịch sử sửa giữ lại giá trị cũ, giá trị mới, ai sửa và lúc nào. Số liệu còn phải qua bước duyệt trước khi thành phát thải.</p></details>
+<details><summary>Một hoá đơn tải lên hai lần có bị tính hai lần không?</summary><p>Không. Hệ thống nhận ra tệp trùng và không lưu lần thứ hai, nên phát thải không bị cộng trùng.</p></details>
+<details><summary>Thêm một công ty mới mất bao lâu?</summary><p>Viết một thư mục cấu hình rồi chạy <span class="mono">dxctl tenant create</span>: người dùng, vai trò, kho tệp và cơ sở được tạo trong vài giây, không sửa mã, không khởi động lại.</p></details>
+<details><summary>Dữ liệu giữa các công ty có bị lẫn không?</summary><p>Không. Dịch vụ kết nối PostgreSQL bằng vai trò không vượt qua được row-level security. Bài kiểm thử tự động cho thấy truy vấn cố tình đòi dữ liệu công ty khác trả về rỗng, và lệnh ghi giả mạo bị từ chối.</p></details>
+<details><summary>EcoTrace tính những loại phát thải nào?</summary><p>Scope 1 (đốt nhiên liệu trực tiếp như dầu, gas) và Scope 2 (điện mua từ lưới). Scope 3, phát thải trong chuỗi cung ứng, nằm ngoài phạm vi dự án.</p></details>
+</div>
+</div>
+</section>
+
+<section style="padding:0 0 88px" id="try">
+<div class="wrap">
+<div class="try">
+<div style="display:flex;flex-direction:column;gap:12px">
+<p class="eyebrow">Chạy thử</p>
+<h3 style="font-size:26px;line-height:1.25;font-weight:800">Cần Docker và máy khoảng 16 GB RAM</h3>
+<p class="lead" style="font-size:16px">Cách dễ nhất là mở repo bằng GitHub Codespaces: cấu hình sẵn chọn máy 4 nhân, 16 GB. Hướng dẫn từng bước nằm trong <a href="https://github.com/CMC-GreenDX/greendx/blob/main/docs/demo-script.md">docs/demo-script.md</a>.</p>
+</div>
+<div>
+<pre class="mono">git clone https://github.com/CMC-GreenDX/greendx.git
+cd greendx
+make up        # khởi động lõi và các dịch vụ
+make health    # mọi dòng phải OK
+make demo      # kịch bản kiểm thử trên terminal</pre>
+</div>
+</div>
+</div>
+</section>
+
+</main>
+
+<footer>
+<div class="wrap inner">
+<div class="row">
+<h2>Mã nguồn mở, ai cũng chạy thử và đóng góp được.</h2>
+<a class="btn btn-amber" href="https://github.com/CMC-GreenDX/greendx">github.com/CMC-GreenDX/greendx</a>
+</div>
+<div class="meta">
+<span>EcoTrace · Đội CMC-GreenDX · Khoa CNTT&amp;TT, Trường Đại học CMC</span>
+<span>Giấy phép <a href="https://github.com/CMC-GreenDX/greendx/blob/main/LICENSE">Apache-2.0</a> · OLP Phần mềm nguồn mở 2026</span>
+</div>
+</div>
+</footer>
+
+<script>
+(function () {
+  var steps = [
+    { title: 'Tải chứng từ lên',
+      summary: 'Kế toán kéo thả hoá đơn PDF hoặc tệp hoá đơn điện tử XML, thủ kho chụp ảnh phiếu giấy. Mọi chứng từ vào cùng một hộp thư thay vì nằm rải rác trong email và Zalo.',
+      who: 'Đăng nhập một lần, kéo thả tệp PDF, XML hoặc ảnh chụp.',
+      system: 'Cổng API kiểm tra token có chữ ký và đọc mã công ty; tệp trùng bị nhận ra để không tính hai lần.',
+      tech: ['Keycloak', 'APISIX'] },
+    { title: 'Quét mã độc, lưu bản gốc',
+      summary: 'Mọi tệp được quét trước khi lưu. Tệp nhiễm bị từ chối và không bao giờ được lưu. Nếu máy quét gặp sự cố, hệ thống từ chối luôn để an toàn. Tệp sạch vào kho riêng của công ty.',
+      who: 'Không phải làm gì thêm.',
+      system: 'ClamAV quét tệp; bản gốc lưu vào bucket riêng của công ty trên SeaweedFS kèm mã SHA-256.',
+      tech: ['ClamAV', 'SeaweedFS'] },
+    { title: 'Đọc và trích số liệu',
+      summary: 'Hoá đơn điện tử XML được đọc thẳng, chính xác tuyệt đối. PDF và ảnh tiếng Việt được AI đọc, nhận ra loại chứng từ và trích từng trường kèm độ tin cậy. Trường dưới ngưỡng được gắn cờ để người kiểm tra và sửa.',
+      who: 'Xem kết quả, sửa trường bị gắn cờ; lịch sử sửa được giữ lại.',
+      system: 'Định dạng câu trả lời sinh từ cấu hình của công ty; phát sự kiện document.extracted lên NATS.',
+      tech: ['Document Intake', 'XML hoá đơn điện tử', 'Gemini / Claude', 'NATS'] },
+    { title: 'Người có trách nhiệm duyệt',
+      summary: 'Số liệu đã kiểm tra trở thành một bản ghi hoạt động. Quy trình BPMN của chính công ty đó đưa việc cần duyệt vào hộp thư đúng người: công ty A duyệt một bước, công ty B hai bước.',
+      who: 'Mở “Việc cần duyệt”, so với bản gốc, bấm phê duyệt hoặc từ chối kèm lý do.',
+      system: 'Flowable chạy quy trình lấy từ thư mục cấu hình; ai thấy việc nào do vai trò trong org.yaml quyết định.',
+      tech: ['Flowable', 'BPMN', 'NATS'] },
+    { title: 'Tính phát thải',
+      summary: 'Khi duyệt, số liệu được nhân với hệ số phát thải để ra tCO₂e theo Scope 1 hoặc Scope 2. Hệ số được lưu kèm phiên bản và nguồn trích dẫn, nên đổi hệ số sau này không làm thay đổi kết quả cũ.',
+      who: 'Xem dashboard cập nhật trực tiếp; bấm vào con số để xem nguồn gốc; xuất báo cáo Excel.',
+      system: 'Carbon Ledger tính phát thải, lưu chuỗi truy vết và đẩy thay đổi tới dashboard bằng Server-Sent Events.',
+      tech: ['Carbon Ledger', 'PostgreSQL + RLS'] },
+    { title: 'Chốt kỳ và niêm phong',
+      summary: 'Cuối kỳ, mã băm của từng con số được ghi vào sổ Trillian riêng của công ty, cùng công nghệ với Certificate Transparency. Kiểm tra niêm phong đọc lại bằng chứng từ sổ và chỉ ra đúng dòng nào đã bị sửa, thêm hoặc xoá.',
+      who: 'Bấm “Khoá kỳ và niêm phong”; bên thẩm định bấm “Kiểm tra niêm phong”.',
+      system: 'Ghi lá vào Trillian, chờ gốc Merkle được ký, rồi khoá kỳ; kiểm tra bằng bằng chứng Merkle.',
+      tech: ['Trillian', 'Merkle log'] }
+  ];
+  var tenants = [
+    { tab: 'Công ty A · Thép', name: 'Công ty Thép mẫu A', industry: 'Sản xuất thép, xuất khẩu EU',
+      docs: ['Hoá đơn tiền điện', 'Phiếu xuất kho', 'Hoá đơn mua hàng'], threshold: '80%',
+      flow: 'Một bước: người duyệt của công ty phê duyệt số liệu.',
+      modules: [['Carbon Ledger', 'Bật'], ['Duyệt mua hàng', 'Bật']],
+      path: 'tenants/company-a-steel/',
+      yaml: ['# tenant.yaml', 'modules:', '  carbon-ledger: true', '  purchase-approval: true', '', '# document-types.yaml', 'review_threshold: 0.8', 'document_types:', '  - id: electricity_bill', '  - id: warehouse_issue_slip', '  - id: purchase_invoice'] },
+    { tab: 'Công ty B · Logistics', name: 'Công ty Logistics mẫu B', industry: 'Vận tải và kho lạnh',
+      docs: ['Phiếu bơm nhiên liệu', 'Hoá đơn tiền điện', 'Hoá đơn mua hàng'], threshold: '85%',
+      flow: 'Hai bước: đội xe kiểm tra, sau đó bộ phận tài chính duyệt.',
+      modules: [['Carbon Ledger', 'Bật'], ['Duyệt mua hàng', 'Tắt']],
+      path: 'tenants/company-b-logistics/',
+      yaml: ['# tenant.yaml', 'modules:', '  carbon-ledger: true', '  purchase-approval: false', '', '# document-types.yaml', 'review_threshold: 0.85', 'document_types:', '  - id: fuel_slip', '  - id: electricity_bill', '  - id: purchase_invoice'] },
+    { tab: 'Công ty C · Xi măng', name: 'Công ty Xi măng mẫu C', industry: 'Thêm trực tiếp trong buổi demo',
+      docs: ['Hoá đơn tiền điện'], threshold: '90%',
+      flow: 'Một bước, từ tệp verify-activity.bpmn của công ty C.',
+      modules: [['Carbon Ledger', 'Bật'], ['Duyệt mua hàng', 'Bật']],
+      path: 'tenants/company-c-cement/',
+      yaml: ['# Tạo bằng một lệnh, không sửa mã:', '# dxctl tenant create tenants/company-c-cement', '', '# tenant.yaml', 'modules:', '  carbon-ledger: true', '  purchase-approval: true', '', '# document-types.yaml', 'review_threshold: 0.9', 'document_types:', '  - id: electricity_bill'] }
+  ];
+
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  var current = 0;
+  var list = document.getElementById('stepList');
+  var buttons = steps.map(function (s, i) {
+    var b = el('button', 'step-btn');
+    b.type = 'button'; b.id = 'step-tab-' + i;
+    b.setAttribute('role', 'tab'); b.setAttribute('aria-controls', 'stepPanel');
+    b.appendChild(el('span', 'n', String(i + 1)));
+    b.appendChild(el('span', null, s.title));
+    b.addEventListener('click', function () { showStep(i); });
+    b.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); showStep((i + 1) % steps.length, true); }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); showStep((i + steps.length - 1) % steps.length, true); }
+    });
+    list.appendChild(b);
+    return b;
+  });
+  function showStep(i, focus) {
+    current = i;
+    var s = steps[i];
+    buttons.forEach(function (b, j) { b.setAttribute('aria-selected', j === i ? 'true' : 'false'); b.tabIndex = j === i ? 0 : -1; });
+    document.getElementById('stepPanel').setAttribute('aria-labelledby', 'step-tab-' + i);
+    document.getElementById('stepNo').textContent = 'Bước ' + (i + 1) + ' / ' + steps.length;
+    document.getElementById('stepTitle').textContent = s.title;
+    document.getElementById('stepSummary').textContent = s.summary;
+    document.getElementById('stepWho').textContent = s.who;
+    document.getElementById('stepSystem').textContent = s.system;
+    var tech = document.getElementById('stepTech'); tech.textContent = '';
+    s.tech.forEach(function (t) { tech.appendChild(el('span', 'chip', t)); });
+    if (focus) buttons[i].focus();
+  }
+  document.getElementById('prevStep').addEventListener('click', function () { showStep((current + steps.length - 1) % steps.length); });
+  document.getElementById('nextStep').addEventListener('click', function () { showStep((current + 1) % steps.length); });
+  showStep(0);
+
+  var tabsBox = document.getElementById('tenantTabs');
+  var tabs = tenants.map(function (t, i) {
+    var b = el('button', 'tab', t.tab);
+    b.type = 'button'; b.id = 'tenant-tab-' + i;
+    b.setAttribute('role', 'tab'); b.setAttribute('aria-controls', 'tenantPanel');
+    b.addEventListener('click', function () { showTenant(i); });
+    b.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') { e.preventDefault(); showTenant((i + 1) % tenants.length, true); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); showTenant((i + tenants.length - 1) % tenants.length, true); }
+    });
+    tabsBox.appendChild(b);
+    return b;
+  });
+  function showTenant(i, focus) {
+    var t = tenants[i];
+    tabs.forEach(function (b, j) { b.setAttribute('aria-selected', j === i ? 'true' : 'false'); b.tabIndex = j === i ? 0 : -1; });
+    document.getElementById('tenantPanel').setAttribute('aria-labelledby', 'tenant-tab-' + i);
+    document.getElementById('tIndustry').textContent = t.industry;
+    document.getElementById('tName').textContent = t.name;
+    document.getElementById('tThreshold').textContent = t.threshold;
+    document.getElementById('tFlow').textContent = t.flow;
+    var docs = document.getElementById('tDocs'); docs.textContent = '';
+    t.docs.forEach(function (d) { docs.appendChild(el('span', 'docpill', d)); });
+    var mods = document.getElementById('tModules');
+    while (mods.children.length > 1) mods.removeChild(mods.lastChild);
+    t.modules.forEach(function (m) { var r = el('div', 'kv'); r.appendChild(el('span', null, m[0])); r.appendChild(el('strong', null, m[1])); mods.appendChild(r); });
+    var pre = document.getElementById('tYaml'); pre.textContent = '';
+    pre.appendChild(el('span', 'path', t.path + '\n\n'));
+    t.yaml.forEach(function (line) { pre.appendChild(el('span', line.charAt(0) === '#' ? 'c' : null, line + '\n')); });
+    if (focus) tabs[i].focus();
+  }
+  showTenant(0);
+})();
+</script>
+</body>
+</html>
