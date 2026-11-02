@@ -1,37 +1,92 @@
 name: pages
 
+# Publishes one GitHub Pages site: https://cmc-greendx.github.io/greendx/
+#   /      the landing page (site/)
+#   /api/  the API documentation (Swagger UI over OpenAPI exported from the services)
+# Pages serves one site per repository and every deployment replaces it, so both parts are built together here.
+# Pull requests only build the site, so a broken page or OpenAPI export shows up before the merge.
+
 on:
   push:
     branches: [main]
     paths:
       - "site/**"
+      - "apps/**"
+      - "capabilities/**"
+      - "docs/api/**"
+      - "tools/api-docs/**"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    paths:
+      - "site/**"
+      - "apps/**"
+      - "capabilities/**"
+      - "docs/api/**"
+      - "tools/api-docs/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: pages-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  SWAGGER_UI_VERSION: 5.33.3
 
 jobs:
-  deploy:
-    name: Deploy landing page
+  build:
+    name: Build
     runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Add the landing page
+        run: |
+          mkdir -p _site
+          cp -R site/. _site/
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install the services' requirements
+        run: |
+          for service in capabilities/document-intake apps/carbon-ledger capabilities/workflow-ui apps/purchase-approval; do
+            python -m pip install -r "$service/requirements.txt"
+          done
+
+      - name: Export the OpenAPI documents
+        run: python tools/api-docs/export_openapi.py _site/api/openapi
+
+      - name: Add Swagger UI, the API page and the Postman collection
+        run: |
+          cp tools/api-docs/site/index.html docs/api/ecotrace.postman_collection.json _site/api/
+          npm pack --silent "swagger-ui-dist@${SWAGGER_UI_VERSION}"
+          tar -xzf "swagger-ui-dist-${SWAGGER_UI_VERSION}.tgz"
+          mkdir _site/api/swagger
+          cp package/swagger-ui.css package/swagger-ui-bundle.js package/swagger-ui-standalone-preset.js package/LICENSE _site/api/swagger/
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
-      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d  # v6.0.0
-
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
-        with:
-          path: site
-
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346  # v5.0.1
