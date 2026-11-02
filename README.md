@@ -77,7 +77,7 @@ See [docs/demo-script.md](docs/demo-script.md) for the walkthrough and [deploy/c
 
 ## API
 
-Every feature of the console is available through the APIs behind the gateway. The reference page at <http://localhost:9080/api-docs> lets you log in and try each endpoint. The [API guide](docs/api/README.md) covers tokens, curl examples, errors, events and a Postman collection. The API documentation is also published at <https://cmc-greendx.github.io/greendx/>, which works without a running server.
+Every feature of the console is available through the APIs behind the gateway. The reference page at <http://localhost:9080/api-docs> lets you log in and try each endpoint. The [API guide](docs/api/README.md) covers tokens, curl examples, errors, events and a Postman collection. The API documentation is also published at <https://cmc-greendx.github.io/greendx/api/>, which works without a running server. The project landing page is at <https://cmc-greendx.github.io/greendx/>.
 
 ## Contributing
 
