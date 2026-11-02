@@ -2,7 +2,8 @@
 
 EcoTrace's core and apps are used through HTTP APIs behind one gateway (APISIX). The demo console is only one client of these APIs. A company's own ERP, a mobile app or a script can do everything the console does.
 
-- **Reference page:** `<PUBLIC_URL>/api-docs`, for example <http://localhost:9080/api-docs> locally. Every endpoint, its parameters and its responses, with **Try it out**.
+- **Permanent documentation:** <https://cmc-greendx.github.io/greendx/>. It is rebuilt from the code after every merge to `main` and works without a running server, but it cannot call the API.
+- **Reference page on a running platform:** `<PUBLIC_URL>/api-docs`, for example <http://localhost:9080/api-docs> locally. Every endpoint, its parameters and its responses, with **Try it out**.
 - **OpenAPI documents:** `/intake/openapi.json`, `/ledger/openapi.json`, `/workflow/openapi.json`, `/purchase/openapi.json`.
 - **Postman:** import [ecotrace.postman_collection.json](ecotrace.postman_collection.json). `make api-check` runs it with Newman.
 

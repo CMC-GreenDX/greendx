@@ -70,6 +70,7 @@ Planned for the `core` Compose profile (Phase 1) unless noted. ✅ means the lic
 | gRPC-Go / protobuf-go | v1.83.2 / v1.36.12 | Go modules | Apache-2.0 ✅ / BSD-3-Clause ✅ | Talks to the Trillian log server |
 | nginx | 1.30.6 | `nginx:1.30.6-alpine` | BSD-2-Clause ✅ | Serves the static demo console |
 | Swagger UI | v5.33.3 | `swaggerapi/swagger-ui:v5.33.3` | Apache-2.0 ✅ | API reference page at `/api-docs` |
+| swagger-ui-dist | 5.33.3 | npm, fetched by the `api-docs` workflow | Apache-2.0 ✅ | Static API documentation site on GitHub Pages |
 
 Transitive Python dependencies of Document Intake are resolved at image build time and are not yet locked; a lock file is a follow-up.
 
