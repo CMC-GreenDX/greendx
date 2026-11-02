@@ -44,7 +44,10 @@ async def lifespan(_: FastAPI):
     await db.close()
 
 
-app = FastAPI(title="EcoTrace Document Intake", version="0.1.0", lifespan=lifespan)
+# The OpenAPI document sits under the service prefix so the gateway can publish it at /intake/openapi.json;
+# the interactive page is the shared one at /api-docs.
+app = FastAPI(title="EcoTrace Document Intake", version="0.1.0", lifespan=lifespan,
+              openapi_url="/intake/openapi.json", docs_url=None, redoc_url=None)
 
 
 async def _tenant(user: User) -> tenant_config.TenantConfig:
@@ -98,7 +101,7 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/intake/me")
+@app.get("/intake/me", summary="Current user, tenant, AI mode and accepted document types")
 async def me(user: User = Depends(current_user)) -> dict:
     tenant = await _tenant(user)
     return {
@@ -111,7 +114,7 @@ async def me(user: User = Depends(current_user)) -> dict:
     }
 
 
-@app.post("/intake/documents", status_code=status.HTTP_201_CREATED)
+@app.post("/intake/documents", status_code=status.HTTP_201_CREATED, summary="Upload a document (scan, store, classify, extract)")
 async def upload(file: UploadFile, user: User = Depends(current_user)) -> dict:
     tenant = await _tenant(user)
     trace_id = uuid.uuid4().hex
@@ -215,7 +218,7 @@ async def upload(file: UploadFile, user: User = Depends(current_user)) -> dict:
     return view
 
 
-@app.get("/intake/documents")
+@app.get("/intake/documents", summary="List the tenant's documents")
 async def list_documents(user: User = Depends(current_user)) -> dict:
     tenant = await _tenant(user)
     docs = await db.list_documents(tenant.tenant_id)
@@ -224,7 +227,7 @@ async def list_documents(user: User = Depends(current_user)) -> dict:
     ]}
 
 
-@app.get("/intake/documents/{document_id}")
+@app.get("/intake/documents/{document_id}", summary="Get a document with its extracted fields")
 async def get_document(document_id: uuid.UUID, user: User = Depends(current_user)) -> dict:
     tenant = await _tenant(user)
     found = await db.get_document(tenant.tenant_id, document_id)
@@ -243,7 +246,7 @@ class Review(BaseModel):
     values: dict[str, str | None] = {}
 
 
-@app.post("/intake/documents/{document_id}/review")
+@app.post("/intake/documents/{document_id}/review", summary="Correct extracted values and confirm the document")
 async def review(document_id: uuid.UUID, body: Review, user: User = Depends(current_user)) -> dict:
     """Corrects values and confirms the document. Values not sent are confirmed as they are."""
     tenant = await _tenant(user)
@@ -282,7 +285,7 @@ async def review(document_id: uuid.UUID, body: Review, user: User = Depends(curr
     return view
 
 
-@app.get("/intake/documents/{document_id}/file")
+@app.get("/intake/documents/{document_id}/file", summary="Download the original file")
 async def get_file(document_id: uuid.UUID, user: User = Depends(current_user)) -> Response:
     await _tenant(user)
     found = await db.get_document(user.tenant_id, document_id)
