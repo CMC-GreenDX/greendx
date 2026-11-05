@@ -83,6 +83,10 @@ Every feature of the console is available through the APIs behind the gateway. T
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. All participants follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
+## Open-source self-assessment
+
+How this repository meets the OLP PMNM 2026 "Points of Fail" criteria (license, releases, building from source, bundling, documentation), with links to the evidence and to the issues that close the remaining gaps: [docs/pof-checklist.md](docs/pof-checklist.md).
+
 ## License
 
 EcoTrace is licensed under the [Apache License 2.0](LICENSE). Third-party components keep their own licenses, listed in [docs/licenses.md](docs/licenses.md).
