@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 EcoTrace contributors
+// SPDX-License-Identifier: Apache-2.0
 // ledger-sealer is a small HTTP front for a Trillian verifiable log, used by Carbon Ledger to seal closed periods.
 //
 //	POST /trees                      create and initialise a log, returns its id (one log per tenant)

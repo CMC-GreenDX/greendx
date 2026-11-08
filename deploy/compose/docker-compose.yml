@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # EcoTrace core services for Docker Compose.
 # Run from the repository root with `make up` (see Makefile), which passes --env-file .env.
 # Every image is pinned to an exact version; see docs/licenses.md.

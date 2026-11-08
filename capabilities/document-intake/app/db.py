@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """PostgreSQL access with row-level security.
 
 Migrations run once at startup as the schema owner (DATABASE_ADMIN_URL). Requests run as `intake_app`, a role

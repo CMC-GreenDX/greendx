@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Facilities and the emission sources fed by approved documents (used by Carbon Ledger).
 facilities:
   - {code: hai-phong-rolling-mill, name: Hai Phong rolling mill, kind: plant, province: Hải Phòng}

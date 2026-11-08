@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Verifies the Keycloak access token again inside the service (the gateway already did once)."""
 
 from __future__ import annotations

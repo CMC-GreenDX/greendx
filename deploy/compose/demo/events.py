@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Shows the latest document events of a tenant from NATS JetStream. Runs inside the document-intake container.
 
 Usage: make events TENANT=company-a-steel        (prints the latest events)

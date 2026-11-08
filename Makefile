@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 .DEFAULT_GOAL := help
 
 PYTHON ?= python
@@ -10,7 +12,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check public-url demo-password api-check
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check public-url demo-password api-check license-check
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -112,10 +114,13 @@ setup: ## Install the pinned lint and changelog tooling
 	npm ci
 	$(PYTHON) -m pip install -r requirements-dev.txt
 
-lint: lint-md lint-yaml ## Run all linters
+lint: lint-md lint-yaml license-check ## Run all linters
 
 lint-md: ## Lint Markdown files
 	npm run lint:md
+
+license-check: ## Check that every source file has an SPDX license header (--fix adds them)
+	$(PYTHON) tools/license-headers.py
 
 lint-yaml: ## Lint YAML files
 	$(PYTHON) -m yamllint --strict .

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Phase 4 acceptance: different approval flows for Company A and B from their config packs, no code change;
 # a purchase invoice goes to Purchase Approval, not Carbon Ledger. Usage: make workflow-check
 set -uo pipefail

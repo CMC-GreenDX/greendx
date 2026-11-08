@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Generates the fictional sample documents used in demos and tests.
 
 Every document is marked as a sample and uses invented companies, codes and amounts.

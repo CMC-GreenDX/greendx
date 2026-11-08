@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Document types that Document Intake accepts for this tenant.
 # Fields marked with `pattern` can also be read by the rule-based fallback (first regex group).
 # Fields below `review_threshold` confidence are flagged for human review.

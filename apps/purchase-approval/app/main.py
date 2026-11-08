@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Purchase Approval: a deliberately tiny second app that reuses Document Intake, the event bus and the workflow.
 
 Purchase invoices (confident or reviewed) start the tenant's `purchase-approval` BPMN process; the outcome is
