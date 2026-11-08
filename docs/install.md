@@ -148,6 +148,7 @@ The services run as containers. Their images are built from this repository, and
 |---|---|
 | `permission denied … docker.sock` | Your user is not in the `docker` group yet. Log out and back in after `usermod`. |
 | `port is already allocated` | Another program uses 9080, 8080 or 8081. Stop it, or change the left-hand port in `deploy/compose/docker-compose.yml`. If you change 9080, change `PUBLIC_URL` too. |
+| `make up` stops at `demo-console`, whose log says `index.html is forbidden (13: Permission denied)` | The web server in the container cannot read files that are not world-readable, for example after a clone with a strict `umask` or in a folder with restrictive ACLs. Run `chmod -R a+rX .` in the repository, or clone again with `umask 022`. |
 | `make up` stops at `clamav` | The first signature download can take several minutes. Run `make up` again. |
 | Services restart or are killed | Not enough memory. Close other programs, or use a machine with 16 GB. |
 | The login page loops back, or says "invalid redirect" | `PUBLIC_URL` does not match the address in the browser. Fix it in `.env` and run `make up`. |
