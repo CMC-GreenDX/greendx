@@ -10,7 +10,7 @@ export
 COMPOSE := docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile $(PROFILE)
 HASURA_URL ?= http://localhost:8081
 
-.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check public-url demo-password api-check
+.PHONY: help setup lint lint-md lint-yaml lint-commits changelog up down reset ps logs health bootstrap demo intake-check ui-check events dxctl seed rls-check onboarding-check ledger-check seal-check tamper untamper workflow-check public-url demo-password api-check trillian-schema
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' Makefile | awk 'BEGIN {FS = ":.*## "} {printf "  %-20s %s\n", $$1, $$2}'
@@ -18,10 +18,13 @@ help: ## List available targets
 .env:
 	cp .env.example .env
 
-up: .env ## Start the services of PROFILE (default: core), wait until healthy, apply metadata
+up: .env trillian-schema ## Start the services of PROFILE (default: core), wait until healthy, apply metadata
 	$(COMPOSE) up -d --build --wait
 	@$(MAKE) --no-print-directory bootstrap
 	@$(MAKE) --no-print-directory seed
+
+trillian-schema: ## Download Trillian's database schema from its pinned release and verify its checksum
+	@sh deploy/compose/trillian/fetch-schema.sh
 
 down: ## Stop the services and keep their data
 	$(COMPOSE) down

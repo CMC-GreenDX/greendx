@@ -43,3 +43,7 @@ Thumbs.db
 
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Downloaded from Trillian's pinned release by make trillian-schema; not part of this repository.
+deploy/compose/trillian/storage.sql
+deploy/compose/trillian/storage.sql.part
