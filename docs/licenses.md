@@ -36,7 +36,7 @@ Planned for the `core` Compose profile (Phase 1) unless noted. ✅ means the lic
 | Workflow (BPMN) | Flowable | 8.0.0 | `flowable/flowable-rest:8.0.0` | Apache-2.0 ✅ | Runs BPMN processes deployed from tenant config packs (own database `flowable`) |
 | Background jobs | Kestra (open-source edition) | v2.0.6 | `kestra/kestra:v2.0.6` | Apache-2.0 ✅ | Scheduled and batch jobs |
 | Event bus | NATS Server with JetStream | 2.15.1 | `nats:2.15.1` | Apache-2.0 ✅ | Domain events in CloudEvents format |
-| Tamper-evident ledger | Trillian log server | v1.8.0 | `gcr.io/trillian-opensource-ci/log_server:v1.8.0` | Apache-2.0 ✅ | Append-only Merkle log that seals closed periods. The project is in maintenance mode (see ADR-0001) |
+| Tamper-evident ledger | Trillian log server | v1.8.0 | `gcr.io/trillian-opensource-ci/log_server:v1.8.0` | Apache-2.0 ✅ | Append-only Merkle log that seals closed periods. Its database schema is downloaded from the v1.8.0 tag and checked against a SHA-256 by `make up`, not copied into this repository. The project is in maintenance mode (see ADR-0001) |
 | Tamper-evident ledger | Trillian log signer | v1.8.0 | `gcr.io/trillian-opensource-ci/log_signer:v1.8.0` | Apache-2.0 ✅ | Integrates queued leaves and signs log roots |
 | Log shipping | Vector | 0.59.0 | `timberio/vector:0.59.0-debian` | MPL-2.0 ✅ | Collects structured JSON logs, including the audit log of core calls |
 | Metrics | Prometheus | v3.15.0 | `prom/prometheus:v3.15.0` | Apache-2.0 ✅ | Metrics collection |

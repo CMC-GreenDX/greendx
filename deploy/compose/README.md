@@ -12,6 +12,8 @@ make down     # stop, keep data
 make reset    # stop and delete data volumes
 ```
 
+`make up` first runs `make trillian-schema`. This downloads Trillian's database schema from its pinned release (v1.8.0) and refuses it if its SHA-256 does not match. The schema is not copied into this repository. If you run `docker compose` directly, run `make trillian-schema` once before.
+
 ## Services in the core profile today
 
 | Service | Image | Host port | Purpose |
