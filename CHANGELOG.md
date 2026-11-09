@@ -3,7 +3,25 @@
 All notable changes to this project are documented in this file.
 It is generated from Conventional Commits by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [0.1.0] - 2026-11-08
+## [0.1.1] - 2026-11-09
+
+### Bug fixes
+
+- **infra:** Fetch the trillian schema at start-up instead of committing a copy (#61)
+
+### Documentation
+
+- **docs:** State the license in every source file (#60)
+- **docs:** Generate the changelog for v0.1.0 (#63)
+- **docs:** Write the full installation guide (#64)
+- **docs:** Correct the points of fail self-assessment (#65)
+
+### CI
+
+- **infra:** Create releases with a tar.gz source archive from a tag (#62)
+
+
+## [0.1.0] - 2026-11-05
 
 ### Features
 
