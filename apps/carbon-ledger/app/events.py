@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Publishes ledger events (CloudEvents 1.0 on tenant.<tenant_id>.<event>, ADR-0003)."""
 
 from __future__ import annotations

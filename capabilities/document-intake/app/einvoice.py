@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Deterministic reader for Vietnamese e-invoices (GDT XML format, Decree 123/2020/ND-CP, Circular 78/2021/TT-BTC).
 
 The XML already contains every value as data, so no OCR or AI is needed and confidence is 1.0. Element names

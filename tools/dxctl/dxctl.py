@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """dxctl: onboard and manage EcoTrace tenants from config packs, without code changes.
 
     dxctl tenant validate tenants/<pack>

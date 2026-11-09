@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Creates the databases used by core services. Runs once, when the data volume is empty.
 set -euo pipefail
 

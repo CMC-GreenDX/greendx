@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Only for tools/seed/generate_sample_documents.py; not used at run time.
 pillow==13.0.0
 reportlab==5.0.1

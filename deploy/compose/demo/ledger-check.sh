@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # End-to-end check of Carbon Ledger: document event -> activity -> approval -> emission entry -> lineage.
 # Usage: make ledger-check   (needs the demo tenants: make seed)
 set -uo pipefail

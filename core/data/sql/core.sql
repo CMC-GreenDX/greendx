@@ -1,3 +1,5 @@
+-- SPDX-FileCopyrightText: 2026 EcoTrace contributors
+-- SPDX-License-Identifier: Apache-2.0
 -- Core schema: tenant registry, facilities, service roles and row-level security.
 -- Idempotent; applied by the db-migrate service on every `make up`.
 -- psql variables: intake_password, ledger_password, purchase_password.

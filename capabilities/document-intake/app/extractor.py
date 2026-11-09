@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Classifies a document and extracts fields with a hosted LLM (Gemini or Claude) or a rule-based fallback.
 
 The schema of the answer is built from the tenant's document-types.yaml, so a new document type or

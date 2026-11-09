@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Publishes domain events to NATS JetStream as CloudEvents 1.0 (structured JSON mode).
 
 Subjects follow ADR-0003: tenant.<tenant_id>.<event type>, e.g. tenant.company-a-steel.document.extracted.

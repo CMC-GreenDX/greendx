@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Period close and seal verification.
 
 Closing a period hashes every emission entry, combines the hashes into a period digest, and appends a leaf with

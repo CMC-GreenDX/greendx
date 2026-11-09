@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Document types that Document Intake accepts for this tenant.
 review_threshold: 0.9
 

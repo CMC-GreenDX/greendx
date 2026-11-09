@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """HTTP API of the Document Intake capability. Reached only through the API gateway."""
 
 from __future__ import annotations

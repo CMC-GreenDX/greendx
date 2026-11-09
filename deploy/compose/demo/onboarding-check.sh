@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Brief acceptance test: a new company is onboarded from its config pack only, its user logs in and uploads a
 # document, and disabling the tenant blocks it. Usage: make onboarding-check
 set -uo pipefail

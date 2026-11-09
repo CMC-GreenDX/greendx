@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 EcoTrace contributors -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Company B: two steps. The fleet supervisor checks the quantity, then finance approves.
      A rejection at the first step ends the process without reaching finance. -->
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"

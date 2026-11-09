@@ -89,4 +89,6 @@ How this repository meets the OLP PMNM 2026 "Points of Fail" criteria (license, 
 
 ## License
 
-EcoTrace is licensed under the [Apache License 2.0](LICENSE). Third-party components keep their own licenses, listed in [docs/licenses.md](docs/licenses.md).
+EcoTrace is licensed under the [Apache License 2.0](LICENSE), an OSI-approved license: anyone may use, study, change and redistribute it, including commercially, as long as they keep the license and the notices in [NOTICE](NOTICE). Every source file states its license with an SPDX header (`SPDX-License-Identifier: Apache-2.0`), which `make license-check` and CI verify.
+
+Third-party components keep their own licenses, listed in [docs/licenses.md](docs/licenses.md). They are pulled from their official registries at pinned versions; none of their source is copied into this repository.

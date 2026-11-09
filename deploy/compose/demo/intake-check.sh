@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # End-to-end check of Document Intake through the gateway: upload, extraction and tenant isolation.
 # Usage: make intake-check   (reads DEMO_USER_PASSWORD from .env)
 set -uo pipefail

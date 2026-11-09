@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Proves that PostgreSQL itself isolates tenants for the service role (intake_app), independently of the code.
 # Usage: make rls-check   (needs the demo tenants: make seed)
 set -uo pipefail

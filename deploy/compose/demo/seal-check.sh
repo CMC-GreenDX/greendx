@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Demo step 4 of the brief: close a period -> seal in Trillian -> tamper with one database row -> verification fails.
 # Usage: make seal-check   (needs an approved entry, e.g. after make ledger-check)
 set -uo pipefail

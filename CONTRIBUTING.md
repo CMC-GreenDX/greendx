@@ -92,6 +92,7 @@ These rules come from the [project brief](docs/project-brief.md) and are checked
 - **English only** for code, identifiers, branch names, commits, issues, pull requests and documentation. User-facing UI text is localised (for example to Vietnamese) through i18n files and is never hard-coded.
 - **No business logic in the core.** `core/` and `capabilities/` never reference a specific company or tenant. Company-specific behaviour belongs in `apps/` or in a tenant config pack under `tenants/`.
 - **Licenses.** Only use components with an [OSI-approved license](https://opensource.org/licenses). Before adding a dependency or container image, check its current license and record it in [docs/licenses.md](docs/licenses.md). If a license is unclear, flag it in the pull request instead of guessing.
+- **License header.** Every new source file starts with an SPDX header; `python tools/license-headers.py --fix` adds it, and CI fails without it.
 - **Pinned versions.** Every container image and package uses an exact version that has been verified to exist. No `latest` tags and no version ranges.
 - **Architecture decisions.** Significant choices are recorded as an ADR in `docs/adr/NNNN-title.md`, using [the template](docs/adr/0000-template.md).
 - **No secrets in Git.** Only `.env.example` with placeholder values is committed. Real secrets live in OpenBao.

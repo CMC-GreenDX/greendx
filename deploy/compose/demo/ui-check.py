@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Browser smoke test of the demo console: SSO login, sample upload, original-document viewer, tenant switch.
 
 Run with `make ui-check` (uses the pinned Playwright image on the host network). Screenshots go to SCREENSHOT_DIR.

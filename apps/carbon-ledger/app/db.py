@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Ledger storage with row-level security: the service runs as ledger_app and sets app.tenant_id per transaction."""
 
 from __future__ import annotations
