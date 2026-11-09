@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Loads a tenant's config pack. The service holds no tenant-specific logic; everything comes from here."""
 
 from __future__ import annotations

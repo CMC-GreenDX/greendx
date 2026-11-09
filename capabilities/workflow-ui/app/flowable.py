@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Minimal client for the Flowable REST API. Every call is scoped to one Flowable tenant id (= EcoTrace tenant)."""
 
 from __future__ import annotations

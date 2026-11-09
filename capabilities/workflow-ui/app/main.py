@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Workflow capability [P]: runs BPMN processes from tenant config packs and serves the "My approvals" inbox.
 
 Apps never call Flowable directly. They publish `workflow.requested` (process key, business key, variables) and

@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 EcoTrace contributors
+// SPDX-License-Identifier: Apache-2.0
 // Conventional Commits rules for EcoTrace. Types and scopes come from CONTRIBUTING.md.
 // The same config checks commit messages and pull request titles in CI.
 

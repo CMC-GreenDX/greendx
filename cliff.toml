@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # git-cliff configuration: builds CHANGELOG.md from Conventional Commits.
 # https://git-cliff.org/docs/configuration
 

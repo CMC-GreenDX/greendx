@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Reads the tenant's config pack: enabled modules, emission sources and factors. No tenant logic in code."""
 
 from __future__ import annotations

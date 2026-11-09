@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 EcoTrace contributors
+// SPDX-License-Identifier: Apache-2.0
 // EcoTrace demo console: Keycloak login (Authorization Code + PKCE), document upload and results.
 // Every API call goes through the gateway on the same origin and carries the access token.
 
