@@ -23,6 +23,11 @@ SELECT 'CREATE DATABASE flowable OWNER flowable' WHERE NOT EXISTS (SELECT 1 FROM
 SQL
 
 # The upstream schema is not idempotent, so it is applied only to an empty database.
+# It is downloaded from Trillian's pinned release by `make trillian-schema` (part of `make up`).
+if [ ! -s /trillian/storage.sql ]; then
+  echo "Trillian schema missing: run 'make trillian-schema' (or 'make up') first" >&2
+  exit 1
+fi
 if [ -z "$(PGPASSWORD="$TRILLIAN_DB_PASSWORD" psql -U trillian -d trillian -tAc "SELECT to_regclass('public.trees')")" ]; then
   PGPASSWORD="$TRILLIAN_DB_PASSWORD" psql -v ON_ERROR_STOP=1 -q -U trillian -d trillian -f /trillian/storage.sql
   echo "Trillian schema created"
