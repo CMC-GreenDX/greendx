@@ -84,6 +84,10 @@ Rules:
 
 - Releases are tagged with [Semantic Versioning](https://semver.org/) as `v0.x.y` until `v1.0.0`.
 - `CHANGELOG.md` is generated from commit messages with [git-cliff](https://git-cliff.org) (`make changelog` or `npm run changelog`). Do not edit it by hand.
+- **To release:**
+  1. Merge a pull request that regenerates `CHANGELOG.md` with the new version: `npx git-cliff --tag vX.Y.Z --output CHANGELOG.md`.
+  2. Tag that commit on `main` and push the tag: `git tag -a vX.Y.Z -m "EcoTrace vX.Y.Z" && git push origin vX.Y.Z`.
+  3. The [release workflow](.github/workflows/release.yml) creates the GitHub release. It attaches `greendx-X.Y.Z.tar.gz` (the supported format, not zip) and `SHA256SUMS`, with notes from git-cliff.
 
 ## Project rules
 
