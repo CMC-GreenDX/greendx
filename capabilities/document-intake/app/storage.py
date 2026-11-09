@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Object storage on SeaweedFS through its S3 API. Each tenant has its own bucket: ecotrace-<tenant_id>."""
 
 from __future__ import annotations

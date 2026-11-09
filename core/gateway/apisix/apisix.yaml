@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # yamllint disable rule:comments
 # Gateway routes. Every business call must carry a valid Keycloak access token (zero trust at the edge);
 # the service behind the route verifies the same token again.

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Helpers shared by the demo checks. Source it: . deploy/compose/demo/lib.sh
 GATEWAY_URL=${GATEWAY_URL:-http://localhost:9080}
 KEYCLOAK_URL=${KEYCLOAK_URL:-http://localhost:8080}

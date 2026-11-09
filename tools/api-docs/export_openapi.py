@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Writes the OpenAPI document of every service to a folder, without starting the services.
 
 Used by the GitHub Pages workflow (.github/workflows/pages.yml). Run from the repository root, with the services' requirements installed:

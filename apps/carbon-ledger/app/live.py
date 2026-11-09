@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Live updates for dashboards: an in-process fan-out of ledger changes per tenant, streamed as Server-Sent Events."""
 
 from __future__ import annotations

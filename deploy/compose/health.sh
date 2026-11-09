@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Checks that every core service is up. Exit code 0 only when all checks pass.
 set -uo pipefail
 

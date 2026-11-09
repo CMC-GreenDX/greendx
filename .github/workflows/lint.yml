@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 name: lint
 
 on:
@@ -81,3 +83,6 @@ jobs:
 
       - name: YAML
         run: yamllint --strict .
+
+      - name: License headers
+        run: python tools/license-headers.py
