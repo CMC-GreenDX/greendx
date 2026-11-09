@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Scripted demo of the core slice: identity -> gateway -> data, with tenant isolation.
 # Usage: make demo   (reads DEMO_USER_PASSWORD from .env)
 set -uo pipefail

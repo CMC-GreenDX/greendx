@@ -1,0 +1,11 @@
+EcoTrace
+Copyright 2026 EcoTrace contributors (CMC-GreenDX team, OLP PMNM 2026)
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+EcoTrace runs, as separate and unmodified programs, third-party components
+such as PostgreSQL, Keycloak, APISIX, Hasura, NATS, SeaweedFS, ClamAV,
+Trillian and Flowable, and uses third-party libraries from PyPI, Go modules
+and npm. None of their source code is included in this repository; each keeps
+its own license. The full list, with versions and licenses, is in
+docs/licenses.md.

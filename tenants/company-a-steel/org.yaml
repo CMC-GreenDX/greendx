@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 # Departments, roles and initial users. Applied by `dxctl tenant create`.
 departments:
   - {id: accounting, name: Phòng Kế toán}

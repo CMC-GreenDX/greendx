@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Consumes document events from NATS JetStream and turns emission-relevant documents into activity records.
 
 Carbon Ledger is never called by Document Intake: it subscribes to the events (ADR-0003).

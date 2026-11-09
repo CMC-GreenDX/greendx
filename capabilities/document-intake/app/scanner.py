@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Malware scan through clamd's INSTREAM command. Every upload is scanned before it is stored."""
 
 from __future__ import annotations

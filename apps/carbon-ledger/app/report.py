@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
 """Inventory report export (XLSX and CSV): totals by scope, every entry with its lineage, and the factors used.
 
 Labels are bilingual (Vietnamese / English) because the report is handed to Vietnamese reviewers and auditors.
