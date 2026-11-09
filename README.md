@@ -65,15 +65,20 @@ The full plan is in [docs/project-brief.md](docs/project-brief.md).
 
 ## Getting started
 
-The core needs a machine with about 16 GB RAM and Docker. The easiest way is a GitHub codespace: the repository's dev container selects a 4-core / 16 GB machine with Docker installed.
+You need a Linux machine (or WSL 2) with about 16 GB RAM, Docker Engine with the Compose plugin, and `git`, `make`, `curl` and `jq`.
 
 ```sh
-make up       # start PostgreSQL, Keycloak, Hasura and APISIX
-make health   # check every service
-make demo     # identity -> gateway -> data, with tenant isolation
+git clone https://github.com/CMC-GreenDX/greendx.git && cd greendx
+cp .env.example .env   # then replace the change-me-… secrets
+make up                # build from source and start everything (first run: 10 to 20 minutes)
+make health            # every service must say OK
 ```
 
-See [docs/demo-script.md](docs/demo-script.md) for the walkthrough and [deploy/compose](deploy/compose) for details. Full installation instructions are completed in Phase 9.
+Open <http://localhost:9080> and log in as `alice` with the `DEMO_USER_PASSWORD` from `.env`.
+
+- **[docs/install.md](docs/install.md):** the full installation guide. It covers requirements, configuration, the optional AI key, how to check, stop and reset the stack, running without `make`, and troubleshooting.
+- **[docs/demo-script.md](docs/demo-script.md):** a walkthrough of the product.
+- **[deploy/compose](deploy/compose):** the list of services.
 
 ## API
 
