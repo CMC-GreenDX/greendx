@@ -1,5 +1,5 @@
 # dashboard
 
-Real-time and historical analytics.
+Historical analytics across closed periods. The live dashboard already runs in the demo console, fed by the Carbon Ledger.
 
-Populated in Phase 6.
+Planned for v1.0.0; not built yet.
