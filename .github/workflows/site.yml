@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
+name: site
+
+on:
+  pull_request:
+    paths:
+      - site/**
+      - tools/site-check.py
+      - .github/workflows/site.yml
+  push:
+    branches: [main]
+    paths:
+      - site/**
+      - tools/site-check.py
+      - .github/workflows/site.yml
+
+permissions:
+  contents: read
+
+jobs:
+  layout:
+    name: Landing page
+    runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright/python:v1.64.0-noble
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - run: pip install -q --root-user-action=ignore playwright==1.64.0
+      - run: python tools/site-check.py
