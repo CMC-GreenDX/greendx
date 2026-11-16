@@ -101,6 +101,13 @@ events: ## Show the latest document events of TENANT (default company-a-steel) f
 	@$(COMPOSE) exec -T document-intake python - $(or $(TENANT),company-a-steel) < deploy/compose/demo/events.py
 
 PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright/python:v1.64.0-noble
+.PHONY: console-layout-check
+console-layout-check: ## Test console screens against API fixtures without a running stack
+	@mkdir -p /tmp/ecotrace-console-layout
+	docker run --rm -e SCREENSHOT_DIR=/shots -v "$(CURDIR):/repo:ro" -w /repo \
+		-v /tmp/ecotrace-console-layout:/shots $(PLAYWRIGHT_IMAGE) \
+		bash -c "pip install -q --root-user-action=ignore playwright==1.64.0 && python deploy/compose/demo/console-layout-check.py"
+
 ui-check: ## Browser smoke test of the demo console; screenshots in /tmp/ecotrace-ui
 	@mkdir -p /tmp/ecotrace-ui
 	docker run --rm --network host -e DEMO_USER_PASSWORD -e EXPECT_SEAL -e CONSOLE_URL=$(or $(PUBLIC_URL),http://localhost:9080) -e SCREENSHOT_DIR=/shots \
