@@ -1,6 +1,6 @@
 # Demo script
 
-This script covers what is built for the organiser demo on 2026-10-22: the identity, gateway and data slice of the core, and the Document Intake capability with a demo console. The full product demo from the [project brief](project-brief.md) (section 11) is added phase by phase.
+This script walks through the product as it runs today, following the demo in the [project brief](project-brief.md#demo).
 
 ## Before the demo (15 minutes ahead)
 
@@ -72,9 +72,9 @@ Optional, in the terminal: `make demo` shows that a call without a token, or wit
 
 - **"You send company invoices to an external AI?"** Yes, when AI extraction is on. It is optional and per deployment. Without a key, a rule-based fallback runs entirely on-premise. Before production, each company must opt in. See [ADR-0002](adr/0002-hosted-llm-api-for-document-intake.md).
 - **"Gemini is free, so what does Google do with the data?"** On the free tier Google may use the content to improve its products, so we only send fictional sample documents. Real deployments use a paid tier, another provider, or the on-premise fallback.
-- **"Is the AI open source?"** No. Gemini (and the optional Claude provider) are hosted services and is not shipped with EcoTrace. Everything we ship is under OSI licenses ([docs/licenses.md](licenses.md)), and the extractor can be switched to a local model later.
+- **"Is the AI open source?"** No. Gemini and the optional Claude provider are hosted services and are not shipped with EcoTrace. Everything we ship is under OSI licenses ([docs/licenses.md](licenses.md)), and the extractor can be switched to a local model later.
 - **"Is isolation enforced in the database?"** Yes. Services connect with roles that cannot bypass PostgreSQL row-level security, and `make rls-check` shows that a query explicitly asking for another company's rows returns nothing, and that a forged insert is rejected ([ADR-0004](adr/0004-tenant-model.md)).
-- **"Where are the other core services?"** OpenBao, Flowable, Kestra, Trillian and observability are the remaining Phase 1 work. Their choices and licenses are in [ADR-0001](adr/0001-core-technology-choices.md).
+- **"Where are secrets, background jobs and monitoring?"** OpenBao, Kestra and observability are planned for v1.0.0. Their choices and licenses are in [ADR-0001](adr/0001-core-technology-choices.md).
 
 ## Consoles (optional)
 
