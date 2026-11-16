@@ -133,11 +133,20 @@ To remove everything, run `make reset`, then `docker image prune -a` and delete 
 `make` only wraps Docker Compose commands, so you can run them directly from the repository root:
 
 ```sh
+# Start with .env from step 3. Export its values for curl and the CLI.
+set -a
+. ./.env
+set +a
+sh deploy/compose/trillian/fetch-schema.sh
 docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile core up -d --build --wait
 curl -fsS -X POST http://localhost:8081/v1/metadata -H "Content-Type: application/json" \
   -H "X-Hasura-Admin-Secret: $HASURA_ADMIN_SECRET" -d @deploy/compose/demo/hasura/metadata.json
 docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile tools run --rm --build dxctl \
-  tenant create tenants/company-a-steel
+  portal configure
+for tenant in company-a-steel company-b-logistics; do
+  docker compose --env-file .env -f deploy/compose/docker-compose.yml --profile tools run --rm --build dxctl \
+    tenant create "tenants/$tenant" || exit 1
+done
 ```
 
 The services run as containers. Their images are built from this repository, and their configuration is mounted from `deploy/`, `core/` and `tenants/`. The commands must therefore run from the repository root, but nothing has to be installed into system folders.
