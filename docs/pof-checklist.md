@@ -71,5 +71,5 @@ The project answers the competition topic (DX-OS Open-Core): see the [project br
 
 - **Criterion 3 (−3):** GitHub adds a zip of the source to every release and it cannot be removed. The release notes name the `.tar.gz` as the supported format.
 - **Criterion 4 (−5):** the Compose commands must run from the repository root, because they mount configuration from it.
-- **Criterion 2 (−5):** JSON and XML data files cannot hold a comment, so they carry no SPDX header.
+- **Criterion 2 (−5):** the header checker excludes JSON and XML data files; JSON does not support comments, while XML does. The current source-header check does not establish license coverage for these excluded files.
 - **Criterion 1:** most pull requests merged before 2026-11-15 had no review. Every pull request now needs an approval from another team member.

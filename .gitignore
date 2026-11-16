@@ -35,11 +35,7 @@ deploy/compose/data/
 # Logs
 *.log
 
-# Editors and OS
-.idea/
-.vscode/*
-!.vscode/extensions.json
-*.swp
+# OS files
 .DS_Store
 Thumbs.db
 

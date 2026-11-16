@@ -1,6 +1,6 @@
 # deploy/compose
 
-Docker Compose files with profiles `core`, `app` and `full`, so the core can run on a 16 GB machine without the heavy optional services.
+The `core` profile starts the implemented services below on a 16 GB machine. The `tools` profile runs the tenant CLI on demand; `app` and `full` are reserved for future profiles.
 
 Run everything from the repository root through the Makefile:
 
@@ -35,7 +35,8 @@ make reset    # stop and delete data volumes
 | `carbon-ledger` | built from `apps/carbon-ledger` | none (via gateway `/ledger/*`) | Activity records, emissions, lineage, period close |
 | `purchase-approval` | built from `apps/purchase-approval` | none (via gateway) | Purchase invoice approvals |
 | `api-docs` | `swaggerapi/swagger-ui:v5.33.3` | none (via gateway `/api-docs/`) | API reference |
-| `dxctl` | built from `tools/dxctl` | none | Tenant onboarding CLI (profile `tools`, run on demand) |
+
+The `dxctl` CLI is separate from these services: it runs on demand in the `tools` profile, built from `tools/dxctl`, with no host port. `make up` uses it to configure the portal and seed Companies A and B. Company C has an additional example pack for the onboarding demo.
 
 OpenBao, Kestra and observability from [ADR-0001](../../docs/adr/0001-core-technology-choices.md) are planned for v1.0.0.
 

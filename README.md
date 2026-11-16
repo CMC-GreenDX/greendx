@@ -9,7 +9,7 @@ Built by team CMC-GreenDX (CMC University) for OLP Phần mềm nguồn mở 202
 
 ## Why
 
-- **GHG inventory and CBAM.** Decision 42/2026/QĐ-TTg requires 2,441 facilities to run GHG inventories, and EU CBAM requires verified emissions data from exporters.
+- **Emissions evidence.** Inventory figures need a traceable link to source documents, approvals and the emission factors used.
 - **Manual document intake.** Bills and slips arrive by email, chat or paper and are retyped into spreadsheets, so the figures lose their link to the source.
 
 ## Architecture
@@ -27,7 +27,7 @@ Component choices and their reasons are in the [ADRs](docs/adr); versions and li
 
 | Works today | Planned before v1.0.0 |
 |---|---|
-| Core services in Docker Compose; three companies onboarded from config packs with `dxctl`; tenant isolation with row-level security | Secrets in OpenBao, background jobs in Kestra, monitoring |
+| Core services in Docker Compose; tenant onboarding with `dxctl` and three example config packs; tenant isolation with row-level security | Secrets in OpenBao, background jobs in Kestra, monitoring |
 | Document Intake: malware scan, e-invoice XML, AI extraction with a rule-based fallback, review and duplicate check | Meter reconciliation (`simulators/meter-sim`) |
 | BPMN approvals per company; Carbon Ledger with lineage; period close sealed in Trillian; Excel and CSV export; live dashboard | Cold storage for closed periods; Kubernetes deployment (`deploy/k8s`) |
 
