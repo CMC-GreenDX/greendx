@@ -99,6 +99,15 @@ Candidate replacements under evaluation. Their licenses are verified, but their 
 
 Not yet verified. Each must be checked and pinned here before it is added: Trino, Apache Iceberg, OpenMetadata, Metabase or Cube, Ollama, Qdrant or Meilisearch, PostGIS.
 
+## Console fonts
+
+The console loads these fonts from Google Fonts with `display=swap`, as specified in the design guide. Font files are not bundled in the repository. This hosted font endpoint does not pin a release; Arial and monospace are the offline fallbacks.
+
+| Font | Source license | License | Use |
+|---|---|---|---|
+| Be Vietnam Pro | [Google Fonts OFL.txt](https://github.com/google/fonts/blob/main/ofl/bevietnampro/OFL.txt) | OFL-1.1 | Text, labels and headings; weights 400, 500, 600, 700 |
+| IBM Plex Mono | [Google Fonts OFL.txt](https://github.com/google/fonts/blob/main/ofl/ibmplexmono/OFL.txt) | OFL-1.1 | Figures and file names; weights 400, 500 |
+
 ## Development and CI tools
 
 These are used only to develop and check the repository. They are not shipped with EcoTrace.

@@ -6,29 +6,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>EcoTrace – Demo console</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
-      <span class="logo" aria-hidden="true">◆</span>
-      <div>
-        <strong>EcoTrace</strong>
-        <small data-i18n="brand.tagline"></small>
-      </div>
-    </div>
+    <a class="brand" href="#upload"><strong>EcoTrace</strong><small data-i18n="brand.tagline"></small></a>
     <div class="session" id="session" hidden>
       <span class="chip chip-tenant" id="tenant-chip"></span>
-      <span class="chip" id="user-chip"></span>
       <span class="chip chip-ai" id="ai-chip"></span>
+      <span class="chip" id="user-chip"></span>
       <button class="link" id="logout" data-i18n="action.logout"></button>
     </div>
     <div class="lang">
-      <button data-lang="vi">VI</button>
-      <button data-lang="en">EN</button>
+      <button data-lang="vi" lang="vi">VI</button>
+      <button data-lang="en" lang="en">EN</button>
     </div>
   </header>
-
   <main>
     <section id="login-view" class="login" hidden>
       <h1 data-i18n="login.title"></h1>
@@ -36,16 +33,25 @@
       <button class="primary" id="login" data-i18n="action.login"></button>
       <p class="hint" data-i18n="login.hint"></p>
     </section>
-
-    <section id="app-view" hidden>
-      <div class="config-strip" id="config-strip"></div>
-
-      <div class="grid">
+    <section id="app-view" class="app-shell" hidden>
+      <nav class="sidebar" aria-label="EcoTrace">
+        <a href="#upload" data-screen-link="upload"><span data-i18n="upload.title"></span></a>
+        <a href="#approvals" data-screen-link="approvals"><span data-i18n="inbox.title"></span><span class="nav-count" id="approvals-count" aria-live="polite">–</span></a>
+        <a href="#ledger" data-screen-link="ledger"><span data-i18n="ledger.title"></span></a>
+        <a href="#purchases" data-screen-link="purchases"><span data-i18n="purchase.title"></span></a>
+        <a href="#documents" data-screen-link="documents"><span data-i18n="documents.title"></span></a>
+        <a href="#facilities" data-screen-link="facilities"><span data-i18n="facilities.title"></span></a>
+      </nav>
+      <div class="workspace">
+        <h1 id="screen-title" tabindex="-1" data-i18n="upload.title"></h1>
+        <section id="upload" data-screen="upload">
+          <div class="config-strip" id="config-strip"></div>
+<div class="grid">
         <article class="card">
           <h2 data-i18n="upload.title"></h2>
           <label class="dropzone" id="dropzone">
-            <input type="file" id="file-input" accept="application/pdf,image/png,image/jpeg,image/webp,.xml,application/xml,text/xml" hidden>
-            <span data-i18n="upload.drop"></span>
+            <input type="file" id="file-input" accept="application/pdf,image/png,image/jpeg,image/webp,.xml,application/xml,text/xml" aria-labelledby="upload-hint">
+            <span id="upload-hint" data-i18n="upload.drop"></span>
           </label>
           <h3 data-i18n="samples.title"></h3>
           <ul class="samples" id="samples"></ul>
@@ -56,8 +62,7 @@
           <ol class="pipeline" id="pipeline"></ol>
         </article>
       </div>
-
-      <article class="card" id="result-card" hidden>
+<article class="card" id="result-card" hidden>
         <div class="result-head">
           <div>
             <h2 id="result-title"></h2>
@@ -73,7 +78,7 @@
             </span>
           </div>
         </div>
-        <table class="fields">
+        <div class="table-scroll" tabindex="0"><table class="fields">
           <thead>
             <tr>
               <th data-i18n="fields.field"></th>
@@ -82,7 +87,7 @@
             </tr>
           </thead>
           <tbody id="fields-body"></tbody>
-        </table>
+        </table></div>
         <p class="muted" id="result-reviewed" hidden></p>
         <p class="notes" id="result-notes" hidden></p>
         <div id="review-history" hidden>
@@ -90,45 +95,16 @@
           <ul class="history" id="review-history-list"></ul>
         </div>
       </article>
-
-      <article class="card" id="dashboard-card" hidden>
-        <div class="result-head">
-          <div>
-            <h2 data-i18n="dash.title"></h2>
-            <p class="muted" data-i18n="dash.body"></p>
-          </div>
-          <span class="live" id="live-badge"><span class="live-dot"></span><span id="live-text"></span></span>
-        </div>
-        <div class="dash-grid">
-          <figure class="chart">
-            <figcaption>
-              <strong data-i18n="dash.byPeriod"></strong>
-              <span class="legend">
-                <span><i class="swatch s1"></i><span data-i18n="ledger.scope1"></span></span>
-                <span><i class="swatch s2"></i><span data-i18n="ledger.scope2"></span></span>
-              </span>
-            </figcaption>
-            <div class="chart-wrap" id="chart-period"></div>
-            <details>
-              <summary data-i18n="dash.table"></summary>
-              <table class="list" id="chart-period-table"></table>
-            </details>
-          </figure>
-          <figure class="chart">
-            <figcaption><strong data-i18n="dash.byFacility"></strong></figcaption>
-            <div id="chart-facility"></div>
-          </figure>
-        </div>
-        <div class="chart-tooltip" id="chart-tooltip" hidden></div>
-      </article>
-
-      <article class="card" id="inbox-card">
+        </section>
+        <section id="approvals" data-screen="approvals">
+<article class="card" id="inbox-card">
         <h2 data-i18n="inbox.title"></h2>
         <p class="muted" data-i18n="inbox.body"></p>
         <ul class="tasks" id="inbox-list"></ul>
       </article>
-
-      <article class="card" id="ledger-card" hidden>
+        </section>
+        <section id="ledger" data-screen="ledger">
+<article class="card" id="ledger-card" hidden>
         <div class="result-head">
           <div>
             <h2 data-i18n="ledger.title"></h2>
@@ -157,7 +133,7 @@
         </div>
         <div class="verify-result" id="verify-result" hidden></div>
         <h3 data-i18n="ledger.pending"></h3>
-        <table class="list">
+        <div class="table-scroll" tabindex="0"><table class="list">
           <thead>
             <tr>
               <th data-i18n="ledger.document"></th>
@@ -168,9 +144,9 @@
             </tr>
           </thead>
           <tbody id="pending-body"></tbody>
-        </table>
+        </table></div>
         <h3 data-i18n="ledger.entries"></h3>
-        <table class="list">
+        <div class="table-scroll" tabindex="0"><table class="list">
           <thead>
             <tr>
               <th data-i18n="ledger.period"></th>
@@ -180,13 +156,44 @@
             </tr>
           </thead>
           <tbody id="entries-body"></tbody>
-        </table>
+        </table></div>
       </article>
-
-      <article class="card" id="purchase-card" hidden>
+<article class="card" id="dashboard-card" hidden>
+        <div class="result-head">
+          <div>
+            <h2 data-i18n="dash.title"></h2>
+            <p class="muted" data-i18n="dash.body"></p>
+          </div>
+          <span class="live" id="live-badge"><span class="live-dot"></span><span id="live-text"></span></span>
+        </div>
+        <div class="dash-grid">
+          <figure class="chart">
+            <figcaption>
+              <strong data-i18n="dash.byPeriod"></strong>
+              <span class="legend">
+                <span><i class="swatch s1"></i><span data-i18n="ledger.scope1"></span></span>
+                <span><i class="swatch s2"></i><span data-i18n="ledger.scope2"></span></span>
+              </span>
+            </figcaption>
+            <div class="chart-wrap" id="chart-period"></div>
+            <details>
+              <summary data-i18n="dash.table"></summary>
+              <div class="table-scroll" tabindex="0"><table class="list" id="chart-period-table"></table></div>
+            </details>
+          </figure>
+          <figure class="chart">
+            <figcaption><strong data-i18n="dash.byFacility"></strong></figcaption>
+            <div id="chart-facility"></div>
+          </figure>
+        </div>
+        <div class="chart-tooltip" id="chart-tooltip" hidden></div>
+      </article>
+        </section>
+        <section id="purchases" data-screen="purchases">
+<article class="card" id="purchase-card" hidden>
         <h2 data-i18n="purchase.title"></h2>
         <p class="muted" data-i18n="purchase.body"></p>
-        <table class="list">
+        <div class="table-scroll" tabindex="0"><table class="list">
           <thead>
             <tr>
               <th data-i18n="ledger.document"></th>
@@ -196,13 +203,13 @@
             </tr>
           </thead>
           <tbody id="purchase-body"></tbody>
-        </table>
+        </table></div>
       </article>
-
-      <div class="grid">
-        <article class="card">
+        </section>
+        <section id="documents" data-screen="upload documents">
+<article class="card">
           <h2 data-i18n="documents.title"></h2>
-          <table class="list">
+          <div class="table-scroll" tabindex="0"><table class="list">
             <thead>
               <tr>
                 <th data-i18n="documents.time"></th>
@@ -212,18 +219,19 @@
               </tr>
             </thead>
             <tbody id="documents-body"></tbody>
-          </table>
+          </table></div>
         </article>
-
-        <article class="card">
+        </section>
+        <section id="facilities-view" data-screen="facilities">
+<article class="card">
           <h2 data-i18n="facilities.title"></h2>
           <p class="muted" data-i18n="facilities.body"></p>
           <ul class="facilities" id="facilities"></ul>
         </article>
+        </section>
       </div>
     </section>
   </main>
-
   <dialog id="viewer">
     <div class="viewer-head">
       <strong id="viewer-title"></strong>
@@ -241,6 +249,7 @@
   </dialog>
 
   <div class="toast" id="toast" hidden></div>
+  <script src="navigation.js" type="module"></script>
   <script src="app.js" type="module"></script>
 </body>
 </html>
