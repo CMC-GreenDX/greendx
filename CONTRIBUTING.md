@@ -100,6 +100,7 @@ These rules come from the [project brief](docs/project-brief.md) and are checked
 - **Pinned versions.** Every container image and package uses an exact version that has been verified to exist. No `latest` tags and no version ranges.
 - **Architecture decisions.** Significant choices are recorded as an ADR in `docs/adr/NNNN-title.md`, using [the template](docs/adr/0000-template.md).
 - **No secrets in Git.** Only `.env.example` with placeholder values is committed. Real secrets live in OpenBao.
+- **User interface.** The landing page and the console follow the [design guide](docs/design.md).
 - **Laptop-friendly.** The `core` Compose profile must run on a 16 GB laptop. Heavy services go in the `full` profile.
 
 ## Local setup
