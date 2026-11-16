@@ -7,6 +7,19 @@ const links = [...document.querySelectorAll('[data-screen-link]')];
 const screens = [...document.querySelectorAll('[data-screen]')];
 const names = new Set(links.map((link) => link.dataset.screenLink));
 
+// Reuse the existing translations; expanded bilingual titles remain on the cards.
+// Short navigation labels keep each destination readable on a 360px screen.
+function refreshLabels() {
+  for (const link of links) {
+    const label = link.querySelector('[data-i18n]');
+    const short = label.textContent.replace(/\s*\([^)]*\)/g, '');
+    if (label.textContent !== short) label.textContent = short;
+  }
+  const active = links.find((link) => link.getAttribute('aria-current') === 'page');
+  if (active) title.textContent = active.querySelector('[data-i18n]').textContent;
+}
+new MutationObserver(refreshLabels).observe(document.querySelector('.sidebar'), { childList: true, subtree: true });
+
 function activate(name, focus = false) {
   const link = links.find((item) => item.dataset.screenLink === name && !item.hidden);
   if (!link) name = 'upload';

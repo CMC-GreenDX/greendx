@@ -207,6 +207,7 @@ def main():
             page.locator("#export-csv").click()
         page.reload()
         expect(page.locator("#app-view")).to_have_attribute("data-active-screen", "ledger")
+        assert page.evaluate("scrollY == 0"), "deep-link reload must keep the header and menu in view"
         page.locator('[data-screen-link="facilities"]').click()
         page.go_back()
         expect(page.locator("#app-view")).to_have_attribute("data-active-screen", "ledger")
