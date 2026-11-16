@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 EcoTrace contributors
+# SPDX-License-Identifier: Apache-2.0
+name: console
+
+on:
+  pull_request:
+    paths:
+      - capabilities/demo-console/public/**
+      - deploy/compose/demo/console-layout-check.py
+      - .github/workflows/console.yml
+  push:
+    branches: [main]
+    paths:
+      - capabilities/demo-console/public/**
+      - deploy/compose/demo/console-layout-check.py
+      - .github/workflows/console.yml
+
+permissions:
+  contents: read
+
+jobs:
+  layout:
+    name: Console layout
+    runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright/python:v1.64.0-noble
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - run: pip install -q --root-user-action=ignore playwright==1.64.0
+      - run: python deploy/compose/demo/console-layout-check.py
