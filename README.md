@@ -3,97 +3,69 @@
 [![lint](https://github.com/CMC-GreenDX/greendx/actions/workflows/lint.yml/badge.svg)](https://github.com/CMC-GreenDX/greendx/actions/workflows/lint.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-> **Status: Phase 1 in progress.** The identity, gateway and data slice of the core runs with Docker Compose. This README is a draft and is completed in Phase 9.
+EcoTrace is an open-source DX-OS platform for Vietnamese enterprises. It turns incoming documents (electricity bills, fuel slips, purchase invoices) into reviewed and approved data, then into Scope 1 and 2 greenhouse-gas figures that trace back to the original document and are sealed in a tamper-evident log. One core serves many companies; a company is added by configuration, without code changes.
 
-EcoTrace is a DX-OS Open-Core platform for Vietnamese enterprises. A reusable, headless core lets any company turn incoming documents (electricity bills, fuel slips, warehouse issue slips, purchase invoices) into structured, approved data, and then into Scope 1 and 2 greenhouse-gas figures that can be traced back to the original document and verified against a tamper-evident ledger.
-
-It is built for the OLP Phần mềm nguồn mở 2026 competition, topic "DX-OS Open-Core".
+Built by team CMC-GreenDX (CMC University) for OLP Phần mềm nguồn mở 2026, topic "DX-OS Open-Core".
 
 ## Why
 
-- **GHG inventory and CBAM.** Decision 42/2026/QĐ-TTg requires 2,441 facilities to run GHG inventories, and EU CBAM requires verified emissions data from exporters. That data must be traceable to evidence.
-- **Manual document intake.** Bills and slips arrive by email, chat or paper, are retyped into spreadsheets, and the figures can no longer be traced to their source.
-- **Existing tools** are expensive, closed and do not run on-premise for SMEs.
+- **Emissions evidence.** Inventory figures need a traceable link to source documents, approvals and the emission factors used.
+- **Manual document intake.** Bills and slips arrive by email, chat or paper and are retyped into spreadsheets, so the figures lose their link to the source.
 
 ## Architecture
 
 ```text
-Tier 3  Business apps        apps/carbon-ledger, apps/purchase-approval
-           ▲ subscribe to domain events
-Tier 2  Capability spaces    document-intake [I], portal [H], workflow-ui [P], dashboard [D]
-           ▲ only via API gateway / event bus
-Tier 1  Headless core        identity, gateway, secrets, data, storage, workflow, events, ledger
+Tier 3  Apps            carbon-ledger, purchase-approval        (enabled per company)
+Tier 2  Capabilities    document-intake, workflow, dashboard     (only call the core through the gateway and events)
+Tier 1  Headless core   Keycloak, APISIX, PostgreSQL + RLS, Hasura, ClamAV, SeaweedFS,
+                        NATS JetStream, Flowable, Trillian
 ```
 
-- **Tier 1, headless core:** no end-user UI and no business logic. It is portable from one company to another without code changes.
-- **Tier 2, capabilities:** reusable services such as Document Intake, which knows nothing about carbon.
-- **Tier 3, apps:** plug-ins that can be enabled per tenant, such as the Carbon Ledger.
+Component choices and their reasons are in the [ADRs](docs/adr); versions and licenses are in [docs/licenses.md](docs/licenses.md).
 
-A tenant (one company) is onboarded by configuration only, from a config pack in `tenants/`.
+## Status
 
-The component choices and their reasons are recorded in [ADR-0001](docs/adr/0001-core-technology-choices.md). Licenses and pinned versions are listed in [docs/licenses.md](docs/licenses.md).
+| Works today | Planned before v1.0.0 |
+|---|---|
+| Core services in Docker Compose; tenant onboarding with `dxctl` and three example config packs; tenant isolation with row-level security | Secrets in OpenBao, background jobs in Kestra, monitoring |
+| Document Intake: malware scan, e-invoice XML, AI extraction with a rule-based fallback, review and duplicate check | Meter reconciliation (`simulators/meter-sim`) |
+| BPMN approvals per company; Carbon Ledger with lineage; period close sealed in Trillian; Excel and CSV export; live dashboard | Cold storage for closed periods; Kubernetes deployment (`deploy/k8s`) |
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| `core/` | Tier 1: manifests and configuration for core services, JSON Schemas, gateway routes |
-| `capabilities/` | Tier 2: document intake, portal, workflow UI, dashboard |
-| `apps/` | Tier 3: carbon ledger, purchase approval |
-| `tenants/` | Tenant config packs |
-| `tools/dxctl/` | Tenant onboarding CLI |
-| `simulators/meter-sim/` | Simulated IoT meters |
-| `deploy/` | Docker Compose (profiles `core`, `app`, `full`) and Kubernetes manifests |
-| `docs/` | Project brief, architecture, ADRs, licenses, API schemas |
-
-## Roadmap
-
-| Phase | Goal |
-|---|---|
-| 0 | Bootstrap: repository, conventions, CI lint, license register, ADR-0001 |
-| 1 | Core services running with Docker Compose |
-| 2 | Multi-tenancy: config packs, `dxctl`, row-level security |
-| 3 | Document Intake |
-| 4 | Workflow and task inbox |
-| 5 | Carbon Ledger |
-| 6 | Portal and dashboards |
-| 7 | Data lifecycle (cold storage, analytics) |
-| 8 | GitOps and resilience |
-| 9 | Polish and release `v1.0.0` |
-
-The full plan is in [docs/project-brief.md](docs/project-brief.md).
+| `core/` | Gateway routes, database setup, JSON Schemas for config packs |
+| `capabilities/` | Document Intake, workflow service, demo console |
+| `apps/` | Carbon Ledger, ledger sealer, Purchase Approval |
+| `tenants/` | One config pack per company |
+| `tools/` | `dxctl` onboarding CLI, API docs build, sample data |
+| `deploy/compose/` | Docker Compose setup |
+| `docs/` | Install guide, ADRs, licenses, API guide, design guide |
 
 ## Getting started
 
-You need a Linux machine (or WSL 2) with about 16 GB RAM, Docker Engine with the Compose plugin, and `git`, `make`, `curl` and `jq`.
+You need Linux (or WSL 2) with about 16 GB RAM, Docker Engine with Compose, `git`, `make`, `curl` and `jq`.
 
 ```sh
 git clone https://github.com/CMC-GreenDX/greendx.git && cd greendx
 cp .env.example .env   # then replace the change-me-… secrets
-make up                # build from source and start everything (first run: 10 to 20 minutes)
+make up                # build and start (first run: 10 to 20 minutes)
 make health            # every service must say OK
 ```
 
-Open <http://localhost:9080> and log in as `alice` with the `DEMO_USER_PASSWORD` from `.env`.
-
-- **[docs/install.md](docs/install.md):** the full installation guide. It covers requirements, configuration, the optional AI key, how to check, stop and reset the stack, running without `make`, and troubleshooting.
-- **[docs/demo-script.md](docs/demo-script.md):** a walkthrough of the product.
-- **[deploy/compose](deploy/compose):** the list of services.
+Open <http://localhost:9080> and log in as `alice` with the `DEMO_USER_PASSWORD` from `.env`. The [install guide](docs/install.md) covers configuration, checks, running without `make` and troubleshooting; the [demo script](docs/demo-script.md) walks through the product.
 
 ## API
 
-Every feature of the console is available through the APIs behind the gateway. The reference page at <http://localhost:9080/api-docs> lets you log in and try each endpoint. The [API guide](docs/api/README.md) covers tokens, curl examples, errors, events and a Postman collection. The API documentation is also published at <https://cmc-greendx.github.io/greendx/api/>, which works without a running server. The project landing page is at <https://cmc-greendx.github.io/greendx/>.
+The reference at <http://localhost:9080/api-docs> lets you log in and try each endpoint. It is also published at <https://cmc-greendx.github.io/greendx/api/>. The [API guide](docs/api/README.md) covers tokens, examples, errors, events and a Postman collection.
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. All participants follow the [Code of Conduct](CODE_OF_CONDUCT.md).
-
-## Open-source self-assessment
-
-How this repository meets the OLP PMNM 2026 "Points of Fail" criteria (license, releases, building from source, bundling, documentation), with links to the evidence and to the issues that close the remaining gaps: [docs/pof-checklist.md](docs/pof-checklist.md).
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Bugs and ideas go to [GitHub Issues](https://github.com/CMC-GreenDX/greendx/issues). Changes are listed in the [changelog](CHANGELOG.md), and the self-assessment against the competition's "Points of Fail" is in [docs/pof-checklist.md](docs/pof-checklist.md).
 
 ## License
 
-EcoTrace is licensed under the [Apache License 2.0](LICENSE), an OSI-approved license: anyone may use, study, change and redistribute it, including commercially, as long as they keep the license and the notices in [NOTICE](NOTICE). Every source file states its license with an SPDX header (`SPDX-License-Identifier: Apache-2.0`), which `make license-check` and CI verify.
+EcoTrace is licensed under the [Apache License 2.0](LICENSE): anyone may use, study, change and redistribute it, including commercially, as long as they keep the license and the [NOTICE](NOTICE). Every source file carries an SPDX header, checked by `make license-check` and CI.
 
 Third-party components keep their own licenses, listed in [docs/licenses.md](docs/licenses.md). They are pulled from their official registries at pinned versions; none of their source is copied into this repository.
