@@ -2,7 +2,7 @@
 
 Part I of the OLP PMNM 2026 rules (50 points) scores the repository with the "Points of Fail" from Tom Callaway's [How you know your Free or Open Source Software Project is doomed to FAIL](http://spot.livejournal.com/308370.html). Each criterion starts at its maximum and loses points for each fail. This page lists the evidence for every fail.
 
-**Self-score: 50 / 50**, checked on 2026-11-15. The risks are listed at the end.
+**Self-score: 50 / 50**, checked on 2026-11-17. The risks are listed at the end.
 
 | # | Criterion | Max | Self-score |
 |---|---|---|---|
@@ -37,7 +37,7 @@ The project answers the competition topic (DX-OS Open-Core): see the [project br
 
 | Fail | Points | Status | Evidence |
 |---|---|---|---|
-| No release | −5 | Pass | [v0.1.0 and v0.1.1](https://github.com/CMC-GreenDX/greendx/releases) |
+| No release | −5 | Pass | [v0.1.0, v0.1.1 and v0.2.0](https://github.com/CMC-GreenDX/greendx/releases) |
 | Releases not versioned | −3 | Pass | Semantic Versioning ([CONTRIBUTING.md](../CONTRIBUTING.md#versioning-and-changelog)) |
 | Non-open release format (zip, rar, …) | −3 | Pass, at risk | `greendx-X.Y.Z.tar.gz` and `SHA256SUMS`, built by the [release workflow](../.github/workflows/release.yml) |
 
