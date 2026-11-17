@@ -99,9 +99,9 @@ Candidate replacements under evaluation. Their licenses are verified, but their 
 
 Not yet verified. Each must be checked and pinned here before it is added: Trino, Apache Iceberg, OpenMetadata, Metabase or Cube, Ollama, Qdrant or Meilisearch, PostGIS.
 
-## Console fonts
+## Site and console fonts
 
-The console loads these fonts from Google Fonts with `display=swap`, as specified in the design guide. Font files are not bundled in the repository. This hosted font endpoint does not pin a release; Arial and monospace are the offline fallbacks.
+The landing page and console load these fonts from Google Fonts with `display=swap`, as specified in the design guide. Font files are not bundled in the repository. This hosted font endpoint does not pin a release; Arial and monospace are the offline fallbacks.
 
 | Font | Source license | License | Use |
 |---|---|---|---|
