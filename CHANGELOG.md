@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file.
 It is generated from Conventional Commits by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [0.2.0] - 2026-11-17
+
+### Features
+
+- **portal:** Redesign the console with responsive screen navigation (#74)
+- **portal:** Align the landing page with the shared design guide (#75)
+
+### Documentation
+
+- **docs:** Complete the documentation audit and startup guide (#73)
+- **docs:** Add a design guide for the landing page and console (#70)
+
+
 ## [0.1.1] - 2026-11-09
 
 ### Bug fixes
@@ -15,6 +28,7 @@ It is generated from Conventional Commits by [git-cliff](https://git-cliff.org);
 - **docs:** Generate the changelog for v0.1.0 (#63)
 - **docs:** Write the full installation guide (#64)
 - **docs:** Correct the points of fail self-assessment (#65)
+- **docs:** Record the points of fail fixes and add the v0.1.1 changelog (#66)
 
 ### CI
 
