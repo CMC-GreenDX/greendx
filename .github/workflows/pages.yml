@@ -4,8 +4,9 @@ name: pages
 
 # Publishes one GitHub Pages site: https://cmc-greendx.github.io/greendx/
 #   /      the landing page (site/)
+#   /product/  the live console entry point when a gateway URL is configured
 #   /api/  the API documentation (Swagger UI over OpenAPI exported from the services)
-# Pages serves one site per repository and every deployment replaces it, so both parts are built together here.
+# Every Pages deployment replaces the previous site, so all three paths are built together.
 # Pull requests only build the site, so a broken page or OpenAPI export shows up before the merge.
 
 on:
@@ -50,10 +51,22 @@ jobs:
           mkdir -p _site
           cp -R site/. _site/
 
-      - name: Add the real product console
+      - name: Add the product console entry point
+        env:
+          ECOTRACE_DEMO_URL: ${{ vars.ECOTRACE_DEMO_URL }}
         run: |
           mkdir -p _site/product
-          cp -R capabilities/demo-console/public/. _site/product/
+          if [[ -z "${ECOTRACE_DEMO_URL:-}" ]]; then
+            cp -R capabilities/demo-console/public/. _site/product/
+          else
+            if [[ ! "$ECOTRACE_DEMO_URL" =~ ^https://[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,}/?$ ]]; then
+              echo "::error::ECOTRACE_DEMO_URL must be an HTTPS gateway origin, without a path or credentials."
+              exit 1
+            fi
+            sed -i "s|__ECOTRACE_DEMO_URL__|${ECOTRACE_DEMO_URL%/}/|g" _site/product/index.html
+            mkdir -p _site/product/preview
+            cp -R capabilities/demo-console/public/. _site/product/preview/
+          fi
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
