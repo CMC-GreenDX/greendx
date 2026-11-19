@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EcoTrace — Web sản phẩm</title>
+  <meta name="description" content="Web sản phẩm EcoTrace: tiếp nhận chứng từ, phê duyệt và truy vết phát thải.">
+  <style>
+    :root { --ink: #123524; --green: #166534; --muted: #52655a; --line: #d9eee0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; background: #f4fbf6; }
+    main { max-width: 1080px; margin: auto; padding: 28px 22px 70px; }
+    nav { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+    nav strong { font-size: 1.25rem; } nav a { color: var(--green); font-weight: 700; text-decoration: none; }
+    .hero { margin: 82px 0 48px; max-width: 760px; }
+    .eyebrow { color: var(--green); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+    h1 { font-size: clamp(2.5rem, 7vw, 4.8rem); line-height: 1.04; letter-spacing: -.04em; margin: 12px 0 18px; }
+    .lead { color: var(--muted); font-size: 1.2rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+    .button { padding: 11px 17px; border-radius: 9px; background: var(--green); color: white; text-decoration: none; font-weight: 700; }
+    .button.alt { background: white; color: var(--green); border: 1px solid #bbd7c4; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    article { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+    article h2 { margin-top: 0; font-size: 1.1rem; } article p { color: var(--muted); margin-bottom: 0; }
+    .note { margin-top: 28px; padding: 16px 18px; border-left: 4px solid #d97706; background: #fff8e8; color: #684b12; }
+    footer { margin-top: 52px; color: var(--muted); font-size: .92rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav><strong>◆ EcoTrace</strong><a href="../">Trang giới thiệu</a></nav>
+    <section class="hero">
+      <div class="eyebrow">Web sản phẩm</div>
+      <h1>Quản lý dữ liệu phát thải từ chứng từ gốc.</h1>
+      <p class="lead">Một không gian làm việc cho đội vận hành: tải chứng từ, kiểm tra dữ liệu trích xuất, phê duyệt theo quy trình và theo dõi Carbon Ledger.</p>
+      <div class="actions"><a class="button" href="../api/">Mở tài liệu API</a><a class="button alt" href="https://github.com/CMC-GreenDX/greendx">Xem mã nguồn</a></div>
+    </section>
+    <section class="grid">
+      <article><h2>Tiếp nhận chứng từ</h2><p>Hóa đơn điện, nhiên liệu, phiếu kho và e-invoice được đưa vào một luồng xử lý có kiểm soát.</p></article>
+      <article><h2>Kiểm tra & phê duyệt</h2><p>Người dùng xem lại trường dữ liệu, phân công nhiệm vụ và ghi nhận quyết định.</p></article>
+      <article><h2>Carbon Ledger</h2><p>Số liệu Scope 1–2 có lineage, báo cáo và dấu niêm phong cho từng kỳ.</p></article>
+    </section>
+    <div class="note">Đây là landing page của web sản phẩm trên GitHub Pages. Chức năng đăng nhập và xử lý dữ liệu cần backend EcoTrace chạy tại một URL public.</div>
+    <footer>EcoTrace · Apache License 2.0</footer>
+  </main>
+</body>
+</html>
