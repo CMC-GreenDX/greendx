@@ -8,6 +8,9 @@ const KEYCLOAK = `${location.origin}/realms/ecotrace/protocol/openid-connect`;
 const CLIENT_ID = 'ecotrace-portal';
 const REDIRECT_URI = `${location.origin}/`;
 const STEPS = ['gateway', 'scan', 'store', 'classify', 'extract', 'persist', 'publish'];
+// GitHub Pages has no Keycloak/API server. Keep the public demo clickable while
+// preserving the real OIDC/API flow everywhere else (local Docker or a deployment).
+const DEMO_MODE = location.hostname.endsWith('github.io');
 
 const $ = (id) => document.getElementById(id);
 let dict = {};
@@ -17,6 +20,69 @@ let me = null;
 let current = null; // document shown in the result card
 let editing = false; // review mode of the result card
 let ledger = null; // { activities, can_approve, summary }
+
+const DEMO_DOCUMENT = {
+  document: {
+    id: 'demo-document-001', filename: 'hoadon-dien-08-2026.pdf',
+    document_type_label: { vi: 'Hoá đơn tiền điện', en: 'Electricity bill' },
+    type_confidence: 0.93, extractor: 'demo-rules', status: 'needs_review',
+    content_type: 'application/pdf', created_at: '2026-11-12T09:42:00+07:00',
+  },
+  fields: [
+    { name: 'consumption_kwh', label: { vi: 'Điện năng tiêu thụ', en: 'Consumption' }, value: '188800', unit: 'kWh', type: 'number', confidence: 0.96 },
+    { name: 'invoice_period', label: { vi: 'Kỳ hóa đơn', en: 'Invoice period' }, value: '01/08 – 31/08/2026', confidence: 0.93 },
+    { name: 'facility', label: { vi: 'Cơ sở', en: 'Facility' }, value: 'Nhà máy Bà Rịa', confidence: 0.90 },
+    { name: 'meter_number', label: { vi: 'Số công tơ', en: 'Meter number' }, value: 'CT-BR-000456', confidence: 0.71, needs_review: true },
+  ],
+  pipeline: STEPS.map((step, i) => ({ step, status: 'ok', detail: 'Demo hoàn tất', ms: 30 + i * 12 })),
+  reviews: [],
+};
+
+const DEMO_ME = {
+  tenant_id: 'company-a-steel', tenant_name: 'Công ty A – Thép',
+  roles: ['uploader', 'reviewer', 'approver'], review_threshold: 0.8,
+  ai: { enabled: true, model: 'demo-rules' },
+  document_types: [
+    { label: { vi: 'Hoá đơn điện', en: 'Electricity bill' } },
+    { label: { vi: 'Phiếu nhiên liệu', en: 'Fuel slip' } },
+    { label: { vi: 'Hoá đơn mua hàng', en: 'Purchase invoice' } },
+    { label: { vi: 'Hoá đơn điện tử XML', en: 'E-invoice XML' } },
+  ],
+};
+
+function demoToken() {
+  const payload = btoa(JSON.stringify({ preferred_username: 'alice', tenant_id: DEMO_ME.tenant_id, exp: Math.floor(Date.now() / 1000) + 3600 }))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  return `demo.${payload}.token`;
+}
+
+function demoResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+}
+
+function demoApi(path, options = {}) {
+  const method = options.method || 'GET';
+  if (path === '/intake/me') return demoResponse(DEMO_ME);
+  if (path === '/intake/documents' && method === 'POST') return demoResponse(DEMO_DOCUMENT);
+  if (path === '/intake/documents') return demoResponse({ documents: [DEMO_DOCUMENT.document] });
+  if (path.match(/^\/intake\/documents\/[^/]+$/)) return demoResponse(DEMO_DOCUMENT);
+  if (path.endsWith('/review') && method === 'POST') {
+    DEMO_DOCUMENT.document.status = 'reviewed';
+    DEMO_DOCUMENT.document.reviewed_by = 'alice';
+    DEMO_DOCUMENT.document.reviewed_at = new Date().toISOString();
+    return demoResponse(DEMO_DOCUMENT);
+  }
+  if (path === '/v1/graphql') return demoResponse({ data: { core_facility: [{ name: 'Nhà máy Bà Rịa', kind: 'factory' }] } });
+  if (path === '/ledger/activities') return demoResponse({ can_approve: true, can_close: true, workflow: false, activities: [{ id: 'demo-activity-001', document_id: DEMO_DOCUMENT.document.id, filename: DEMO_DOCUMENT.document.filename, source_name: 'Điện lưới', scope: 2, quantity: 188800, unit: 'kWh', period: '2026-08', status: 'pending_approval' }] });
+  if (path.startsWith('/ledger/summary')) return demoResponse({ scope1_kg: 42800, scope2_kg: 128572.8, periods: [{ period: '2026-08', status: 'open', entry_count: 1 }], entries: [{ id: 'demo-entry-001', period: '2026-08', source_id: 'Điện lưới', scope: 2, quantity: 188800, unit: 'kWh', co2e_kg: 128572.8 }] });
+  if (path === '/ledger/trend') return demoResponse({ by_period: [{ period: '2026-07', scope: 1, co2e_kg: 38000 }, { period: '2026-07', scope: 2, co2e_kg: 118000 }, { period: '2026-08', scope: 1, co2e_kg: 42800 }, { period: '2026-08', scope: 2, co2e_kg: 128572.8 }], by_facility: [{ facility: 'Nhà máy Bà Rịa', co2e_kg: 171372.8 }] });
+  if (path === '/workflow/tasks') return demoResponse({ tasks: [{ id: 'demo-task-001', name: 'Duyệt dữ liệu điện tháng 08/2026', process_key: 'verify-activity', summary: DEMO_DOCUMENT.document.filename, created: '2026-11-12T09:45:00+07:00', document_id: DEMO_DOCUMENT.document.id, decisions: [] }] });
+  if (path === '/purchase/requests') return demoResponse({ requests: [{ document_id: 'demo-invoice-001', filename: 'einvoice-purchase-0815.xml', supplier: 'Nhà cung cấp mẫu', total_vnd: 125000000, status: 'pending' }] });
+  if (path.endsWith('/file')) return new Response(new Blob(['EcoTrace demo document'], { type: 'application/pdf' }), { status: 200 });
+  if (path.includes('/complete') || path.includes('/approve') || path.includes('/reject')) return demoResponse({ process_finished: true });
+  if (path.includes('/report')) return new Response(new Blob(['EcoTrace demo report'], { type: 'text/plain' }), { status: 200 });
+  return demoResponse({});
+}
 
 // --- i18n ---------------------------------------------------------------------------------------
 
@@ -67,6 +133,12 @@ function claimsOf(jwt) {
 }
 
 async function login() {
+  if (DEMO_MODE) {
+    tokens = { access_token: demoToken() };
+    sessionStorage.setItem('tokens', JSON.stringify(tokens));
+    location.reload();
+    return;
+  }
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const challenge = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
   const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
@@ -106,6 +178,11 @@ async function accessToken() {
 }
 
 function logout() {
+  if (DEMO_MODE) {
+    sessionStorage.clear();
+    location.reload();
+    return;
+  }
   const idToken = tokens?.id_token;
   sessionStorage.clear();
   location.assign(`${KEYCLOAK}/logout?${new URLSearchParams({
@@ -114,6 +191,7 @@ function logout() {
 }
 
 async function api(path, options = {}) {
+  if (DEMO_MODE) return demoApi(path, options);
   const res = await fetch(path, { ...options, headers: { ...options.headers, Authorization: `Bearer ${await accessToken()}` } });
   if (res.status === 401) {
     toast(t('error.session'));
@@ -668,6 +746,7 @@ async function start() {
   try {
     me = await (await api('/intake/me')).json();
   } catch { return; }
+  if (DEMO_MODE) current = DEMO_DOCUMENT;
   $('session').hidden = false;
   $('app-view').hidden = false;
   renderAll();
